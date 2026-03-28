@@ -150,27 +150,39 @@ class OverlayWidget(QWidget):
             painter.end()
 
 class ScaleLineWidget(QWidget):
-    def __init__(self, parent=None, height=300, num_markers=6, min_value=0, max_value=200, color=QColor(255, 165, 0), label="(W)", marker_direction="right", alignment="left"):
+    def __init__(self, parent=None, height=300, scale_width=300, num_markers=6, min_value=0, max_value=200, color=QColor(255, 165, 0), label="(W)", marker_direction="right", alignment="left", orientation="vertical"):
         super().__init__(parent)
         self.setStyleSheet("background-color: transparent;")
-        self.setMinimumSize(150, height)
+        if orientation == "vertical":
+            self.setMinimumSize(150, height)
+        else:
+            self.setMinimumSize(scale_width, 100)
         self.height = height
+        self.scale_width = scale_width
         self.num_markers = num_markers
         self.min_value = min_value
         self.max_value = max_value
         self.line_width = 3  # 刻度线和标记的宽度
         self.marker_length = 20  # 标记长度
-        self.font = QFont("Microsoft YaHei", 10)  # 改回原始字体
-        self.padding = 50  # 上边距，为粗体标签留出空间
+        self.font = QFont("Arial Narrow", 9)  # 更改为Arial Narrow，字体大小改为9
+        self.padding = 50  # 边距，为粗体标签留出空间
         self.color = color  # 刻度线颜色
         self.label = label  # 刻度线标签
-        self.marker_direction = marker_direction  # 标记方向："left" 或 "right"
+        self.marker_direction = marker_direction  # 标记方向："left", "right", "up", "down"
         self.alignment = alignment  # 数字对齐方式："left" 或 "right"
+        self.orientation = orientation  # 方向："vertical" 或 "horizontal"
     
     def set_height(self, height):
         """设置刻度线高度"""
         self.height = height
         self.setMinimumSize(150, int(height + 2 * self.padding))
+        self.update()
+    
+    def set_width(self, scale_width):
+        """设置刻度线宽度"""
+        self.scale_width = scale_width
+        # 增加额外宽度以容纳右侧标签
+        self.setMinimumSize(int(scale_width + 2 * self.padding + 150), 100)
         self.update()
     
     def set_range(self, min_value, max_value):
@@ -185,67 +197,125 @@ class ScaleLineWidget(QWidget):
         # 创建QPainter对象
         painter = QPainter(self)
         try:
-            # 计算实际刻度线高度（减去上下边距）
-            actual_height = int(self.height)
-            start_y = self.padding
-            end_y = start_y + actual_height
-            
-            # 绘制垂直刻度线
-            painter.setPen(QPen(self.color, self.line_width))
-            # 对于左指向标记，将刻度线向右移动，为左侧文本留出空间
-            if self.marker_direction == "left":
-                scale_line_x = self.width() - 20  # 刻度线靠近右侧
-            else:
-                scale_line_x = 20  # 刻度线靠近左侧
-            painter.drawLine(scale_line_x, start_y, scale_line_x, end_y)
-            
-            # 在刻度线顶部添加标签
-            # 创建粗体字体
-            bold_font = QFont(self.font)
-            bold_font.setBold(True)
-            painter.setFont(bold_font)
-            painter.setPen(QPen(self.color, 1))  # 使用与刻度线相同的颜色
-            # 对于左指向标记，调整标签位置
-            if self.marker_direction == "left":
-                painter.drawText(scale_line_x - 20, start_y - 25, self.label)  # 向上移动一行，确保标签完全可见
-            else:
-                painter.drawText(scale_line_x - 10, start_y - 25, self.label)  # 向上移动一行，确保标签完全可见
-            
-            # 绘制标记和数字
-            painter.setFont(self.font)
-            for i in range(self.num_markers):
-                # 计算标记位置，0在底部，5在顶部
-                marker_y = end_y - (i * actual_height / (self.num_markers - 1))
+            if self.orientation == "vertical":
+                # 计算实际刻度线高度（减去上下边距）
+                actual_height = int(self.height)
+                start_y = self.padding
+                end_y = start_y + actual_height
                 
-                # 绘制标记
-                painter.setPen(QPen(self.color, self.line_width))  # 使用指定颜色，线宽3
-                if self.marker_direction == "right":
-                    # 绘制标记指向右侧
-                    painter.drawLine(scale_line_x, int(marker_y), scale_line_x + self.marker_length, int(marker_y))
-                    # 计算文本位置 - 对于右指向标记，文本应该在标记右侧
-                    text_x = scale_line_x + self.marker_length + 5
+                # 绘制垂直刻度线
+                painter.setPen(QPen(self.color, self.line_width))
+                # 对于左指向标记，将刻度线向右移动，为左侧文本留出空间
+                if self.marker_direction == "left":
+                    scale_line_x = self.width() - 20  # 刻度线靠近右侧
                 else:
-                    # 绘制标记指向左侧
-                    painter.drawLine(scale_line_x, int(marker_y), scale_line_x - self.marker_length, int(marker_y))
-                    # 计算文本位置 - 对于左指向标记，文本应该在标记左侧，留出5px空间
-                    text_x = scale_line_x - self.marker_length - 5 - 80  # 5px空间，与橙色刻度线保持一致
+                    scale_line_x = 20  # 刻度线靠近左侧
+                painter.drawLine(scale_line_x, start_y, scale_line_x, end_y)
                 
-                # 计算标记值
-                value = self.min_value + (i * (self.max_value - self.min_value) / (self.num_markers - 1))
-                
-                # 格式化数字为xxx.x格式，显示前导零，根据对齐方式格式化
-                if self.alignment == "right":
-                    formatted_value = f"{value:>5.1f}"
-                    align_flag = Qt.AlignRight
+                # 在刻度线顶部添加标签
+                # 创建粗体字体
+                bold_font = QFont(self.font)
+                bold_font.setBold(True)
+                painter.setFont(bold_font)
+                painter.setPen(QPen(self.color, 1))  # 使用与刻度线相同的颜色
+                # 对于左指向标记，调整标签位置
+                if self.marker_direction == "left":
+                    painter.drawText(scale_line_x - 20, start_y - 25, self.label)  # 向上移动一行，确保标签完全可见
                 else:
-                    formatted_value = f"{value:<5.1f}"
-                    align_flag = Qt.AlignLeft
-                # 绘制数字
-                painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
-                # 创建文本区域，增加高度和宽度以显示完整数字
-                # 固定文本矩形高度，确保所有数字对齐一致
-                text_rect = QRect(text_x, int(marker_y) - 12, 80, 24)  # 固定尺寸
-                painter.drawText(text_rect, align_flag | Qt.AlignVCenter, formatted_value)
+                    painter.drawText(scale_line_x - 10, start_y - 25, self.label)  # 向上移动一行，确保标签完全可见
+                
+                # 绘制标记和数字
+                painter.setFont(self.font)
+                for i in range(self.num_markers):
+                    # 计算标记位置，0在底部，5在顶部
+                    marker_y = end_y - (i * actual_height / (self.num_markers - 1))
+                    
+                    # 绘制标记
+                    painter.setPen(QPen(self.color, self.line_width))  # 使用指定颜色，线宽3
+                    if self.marker_direction == "right":
+                        # 绘制标记指向右侧
+                        painter.drawLine(scale_line_x, int(marker_y), scale_line_x + self.marker_length, int(marker_y))
+                        # 计算文本位置 - 对于右指向标记，文本应该在标记右侧
+                        text_x = scale_line_x + self.marker_length + 5
+                    else:
+                        # 绘制标记指向左侧
+                        painter.drawLine(scale_line_x, int(marker_y), scale_line_x - self.marker_length, int(marker_y))
+                        # 计算文本位置 - 对于左指向标记，文本应该在标记左侧，留出5px空间
+                        text_x = scale_line_x - self.marker_length - 5 - 80  # 5px空间，与橙色刻度线保持一致
+                    
+                    # 计算标记值
+                    value = self.min_value + (i * (self.max_value - self.min_value) / (self.num_markers - 1))
+                    
+                    # 格式化数字为xxx.x格式，显示前导零，根据对齐方式格式化
+                    if self.alignment == "right":
+                        formatted_value = f"{value:>5.1f}"
+                        align_flag = Qt.AlignRight
+                    else:
+                        formatted_value = f"{value:<5.1f}"
+                        align_flag = Qt.AlignLeft
+                    # 绘制数字
+                    painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
+                    # 创建文本区域，增加高度和宽度以显示完整数字
+                    # 固定文本矩形高度，确保所有数字对齐一致
+                    text_rect = QRect(text_x, int(marker_y) - 12, 80, 24)  # 固定尺寸
+                    painter.drawText(text_rect, align_flag | Qt.AlignVCenter, formatted_value)
+            else:  # 水平刻度线
+                # 计算实际刻度线宽度（减去左右边距）
+                actual_width = int(self.scale_width)
+                start_x = self.padding
+                end_x = start_x + actual_width
+                
+                # 绘制水平刻度线
+                painter.setPen(QPen(self.color, self.line_width))
+                # 对于下指向标记，将刻度线上移，为下方文本留出空间
+                if self.marker_direction == "down":
+                    scale_line_y = 50  # 刻度线上移
+                else:
+                    scale_line_y = 50  # 刻度线居中
+                painter.drawLine(start_x, scale_line_y, end_x, scale_line_y)
+                
+                # 在刻度线右侧添加标签
+                # 创建粗体字体
+                bold_font = QFont(self.font)
+                bold_font.setBold(True)
+                painter.setFont(bold_font)
+                painter.setPen(QPen(self.color, 1))  # 使用与刻度线相同的颜色
+                # 创建文本区域，位于刻度线右侧，垂直居中
+                # 增加宽度以确保完整显示标签
+                label_rect = QRect(end_x + 20, scale_line_y - 12, 150, 24)  # 150px width, 24px height
+                painter.drawText(label_rect, Qt.AlignLeft | Qt.AlignVCenter, self.label)
+                
+                # 绘制标记和数字
+                painter.setFont(self.font)
+                for i in range(self.num_markers):
+                    # 计算标记位置，0在左侧，5在右侧
+                    marker_x = start_x + (i * actual_width / (self.num_markers - 1))
+                    
+                    # 绘制标记
+                    painter.setPen(QPen(self.color, self.line_width))  # 使用指定颜色，线宽3
+                    if self.marker_direction == "up":
+                        # 绘制标记指向上方
+                        painter.drawLine(int(marker_x), scale_line_y, int(marker_x), scale_line_y - self.marker_length)
+                        # 计算文本位置 - 对于上指向标记，文本垂直居中对齐标记
+                        text_y = scale_line_y - self.marker_length - 12  # 12是文本高度的一半（24/2）
+                    else:
+                        # 绘制标记指向下方
+                        painter.drawLine(int(marker_x), scale_line_y, int(marker_x), scale_line_y + self.marker_length)
+                        # 计算文本位置 - 对于下指向标记，文本直接位于标记下方
+                        text_y = scale_line_y + self.marker_length + 5  # 5px spacing below marker
+                    
+                    # 计算标记值
+                    value = self.min_value + (i * (self.max_value - self.min_value) / (self.num_markers - 1))
+                    
+                    # 格式化数字为xxx.x格式，显示前导零，水平居中对齐
+                    formatted_value = f"{value:^5.1f}"
+                    align_flag = Qt.AlignCenter
+                    # 绘制数字
+                    painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
+                    # 创建文本区域，增加高度和宽度以显示完整数字
+                    # 固定文本矩形宽度，确保所有数字对齐一致
+                    text_rect = QRect(int(marker_x) - 40, int(text_y), 80, 24)  # 固定尺寸
+                    painter.drawText(text_rect, align_flag | Qt.AlignVCenter, formatted_value)
         finally:
             painter.end()
 
@@ -437,11 +507,26 @@ class DL24App(QMainWindow):
             min_value=0, 
             max_value=15, 
             color=QColor(255, 0, 0),  # 红色
-            label="(I)", 
+            label="(A)", 
             marker_direction="left",  # 标记指向左侧，与V Scale一致
             alignment="right"  # 数字右对齐，与V Scale一致
         )
         self.scale_line3.setParent(main_widget)
+        
+        # 6. 第四个刻度线widget（T Scale，水平）
+        from PyQt5.QtGui import QColor
+        self.scale_line4 = ScaleLineWidget(
+            main_widget, 
+            scale_width=300,  # 初始宽度
+            min_value=0, 
+            max_value=300,  # 范围改为0-300
+            color=QColor(128, 128, 128),  # 灰色
+            label="(Min)", 
+            marker_direction="down",  # 标记指向下方
+            alignment="center",  # 数字居中对齐
+            orientation="horizontal"  # 水平方向
+        )
+        self.scale_line4.setParent(main_widget)
         
         # 连接窗口大小变化信号
         self.resizeEvent = self.on_resize
@@ -535,7 +620,7 @@ class DL24App(QMainWindow):
         # 定位第一个刻度线widget到主布局的右侧，高度为主体布局的50%
         scale_x = left_margin + widget_width + 20  # 20像素的间距
         scale_height = ui_height * 0.5  # 主体布局高度的50%
-        scale_y = (ui_height - (scale_height + 2 * self.scale_line.padding)) / 2  # 垂直居中，考虑上下边距
+        scale_y = (ui_height - (scale_height + 2 * self.scale_line.padding)) / 2 - 150  # 垂直居中，上移150像素，考虑上下边距
         scale_width = 150  # 进一步增加宽度以显示完整的数字
         self.scale_line.set_height(scale_height)
         self.scale_line.setGeometry(int(scale_x), int(scale_y), scale_width, int(scale_height + 2 * self.scale_line.padding))
@@ -545,7 +630,7 @@ class DL24App(QMainWindow):
         scale3_height = scale_height * 0.75  # P Scale高度的75%
         # 计算中间位置，在P Scale和V Scale之间
         scale3_x = (scale_x + scale_width + (ui_width - 200 - 20)) / 2 - scale3_width / 2
-        scale3_y = (ui_height - (scale3_height + 2 * self.scale_line3.padding)) / 2  # 垂直居中，考虑上下边距
+        scale3_y = (ui_height - (scale3_height + 2 * self.scale_line3.padding)) / 2 - 150  # 垂直居中，上移150像素，考虑上下边距
         self.scale_line3.set_height(scale3_height)
         self.scale_line3.setGeometry(int(scale3_x), int(scale3_y), scale3_width, int(scale3_height + 2 * self.scale_line3.padding))
         
@@ -557,6 +642,13 @@ class DL24App(QMainWindow):
         scale2_y = (ui_height - (scale2_height + 2 * self.scale_line2.padding)) / 2  # 垂直居中，考虑上下边距
         self.scale_line2.set_height(scale2_height)
         self.scale_line2.setGeometry(int(scale2_x), int(scale2_y), scale2_width, int(scale2_height + 2 * self.scale_line2.padding))
+        
+        # 定位第四个刻度线widget（T Scale，水平）到主布局的下方，宽度为主体布局的3/4
+        scale4_width = ui_width * 0.75  # 主体布局宽度的3/4
+        scale4_x = (ui_width - scale4_width) / 2  # 水平居中
+        scale4_y = ui_height - 120  # 位于主布局下方，上移20像素
+        self.scale_line4.set_width(scale4_width)
+        self.scale_line4.setGeometry(int(scale4_x), int(scale4_y), int(scale4_width + 2 * self.scale_line4.padding), 100)
         
     def init_timer(self):
         # 数据更新定时器
