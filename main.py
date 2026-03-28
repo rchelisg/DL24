@@ -431,6 +431,18 @@ class DL24App(QMainWindow):
         )
         self.scale_line2.setParent(main_widget)
         
+        # 5. 第三个刻度线widget（I Scale）
+        self.scale_line3 = ScaleLineWidget(
+            main_widget, 
+            min_value=0, 
+            max_value=15, 
+            color=QColor(255, 0, 0),  # 红色
+            label="(I)", 
+            marker_direction="left",  # 标记指向左侧，与V Scale一致
+            alignment="right"  # 数字右对齐，与V Scale一致
+        )
+        self.scale_line3.setParent(main_widget)
+        
         # 连接窗口大小变化信号
         self.resizeEvent = self.on_resize
         
@@ -527,6 +539,15 @@ class DL24App(QMainWindow):
         scale_width = 150  # 进一步增加宽度以显示完整的数字
         self.scale_line.set_height(scale_height)
         self.scale_line.setGeometry(int(scale_x), int(scale_y), scale_width, int(scale_height + 2 * self.scale_line.padding))
+        
+        # 定位第三个刻度线widget（I Scale）到中间，高度为P Scale的75%
+        scale3_width = 200  # 宽度与V Scale一致，以容纳左侧文本
+        scale3_height = scale_height * 0.75  # P Scale高度的75%
+        # 计算中间位置，在P Scale和V Scale之间
+        scale3_x = (scale_x + scale_width + (ui_width - 200 - 20)) / 2 - scale3_width / 2
+        scale3_y = (ui_height - (scale3_height + 2 * self.scale_line3.padding)) / 2  # 垂直居中，考虑上下边距
+        self.scale_line3.set_height(scale3_height)
+        self.scale_line3.setGeometry(int(scale3_x), int(scale3_y), scale3_width, int(scale3_height + 2 * self.scale_line3.padding))
         
         # 定位第二个刻度线widget到主布局的右侧，高度为主体布局的3/5
         # 增加宽度以容纳左侧的文本
