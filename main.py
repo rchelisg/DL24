@@ -88,43 +88,6 @@ class OverlayWidget(QWidget):
         # 创建QPainter对象
         painter = QPainter(self)
         try:
-            # 绘制顶部浅灰色粗线
-            painter.setPen(QPen(QColor(200, 200, 200), 3))  # 浅灰色，线宽3
-            painter.drawLine(x, y + 5, x + width, y + 5)
-            
-            # 绘制右侧橙色粗线（刻度线）
-            painter.setPen(QPen(QColor(255, 165, 0), 3))  # 橙色，线宽3
-            # 顶部线的y坐标
-            top_line_y = y + 5
-            # 右侧刻度线的x坐标，调整为PlotWindow的右边缘
-            # 由于线宽为3，需要向左偏移2像素以确保右侧边缘对齐
-            scale_line_x = x + width - 2
-            painter.drawLine(scale_line_x, top_line_y, scale_line_x, y + height)
-            
-            # 绘制6个刻度标记，指向右侧
-            painter.setPen(QPen(QColor(255, 165, 0), 3))  # 橙色，线宽3
-            num_markers = 6
-            # 顶部线的y坐标
-            top_line_y = y + 5
-            # 底部线的y坐标
-            bottom_line_y = y + height
-            # 设置字体和颜色用于数字
-            painter.setFont(QFont("Microsoft YaHei", 10))
-            painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
-            for i in range(num_markers):
-                # 计算刻度位置，从底部到顶部，确保顶部标记与顶部线对齐
-                marker_y = bottom_line_y - (i * (bottom_line_y - top_line_y) / (num_markers - 1))
-                # 绘制指向右侧的标记
-                painter.setPen(QPen(QColor(255, 165, 0), 3))  # 橙色，线宽3
-                painter.drawLine(scale_line_x, int(marker_y), scale_line_x + 20, int(marker_y))
-                # 计算刻度值（0到20，共6个标记）
-                value = (i * 20) / (num_markers - 1)
-                # 格式化数字为xxx.x格式，用空格代替前导零
-                formatted_value = f"{value:5.1f}"
-                # 绘制数字到标记右侧
-                painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
-                painter.drawText(scale_line_x + 25, int(marker_y) + 5, formatted_value)
-            
             # 绘制紫色原点（PlotWindow的左下角）
             origin_x = x
             origin_y = y + height
