@@ -1,6 +1,8 @@
 import sys
 import time
 from datetime import datetime
+import os
+import hashlib
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QGroupBox, QCheckBox,
@@ -17,6 +19,56 @@ import serial.tools.list_ports
 # 版本号管理
 VERSION = "0.00.80"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+# 计算代码哈希值的函数
+def calculate_code_hash():
+    """计算当前代码的哈希值，用于检测代码变化"""
+    hash_obj = hashlib.md5()
+    # 读取当前文件的内容
+    with open(__file__, 'rb') as f:
+        content = f.read()
+        hash_obj.update(content)
+    return hash_obj.hexdigest()
+
+# 跟踪版本号的函数
+def get_revision():
+    """获取当前版本号，如果代码有变化则自动递增"""
+    revision_file = "revision.txt"
+    current_hash = calculate_code_hash()
+    
+    try:
+        # 尝试读取当前版本号和哈希值
+        with open(revision_file, 'r') as f:
+            lines = f.readlines()
+            if len(lines) >= 2:
+                stored_revision = lines[0].strip()
+                stored_hash = lines[1].strip()
+                
+                # 如果哈希值相同，返回当前版本号
+                if stored_hash == current_hash:
+                    return stored_revision
+                # 如果哈希值不同，递增版本号
+                else:
+                    major, minor, patch = map(int, stored_revision.split('.'))
+                    patch += 1
+                    new_revision = f"{major}.{minor}.{patch:02d}"
+            else:
+                # 文件格式不正确，使用默认版本号
+                new_revision = "1.0.00"
+    except FileNotFoundError:
+        # 文件不存在，使用默认版本号
+        new_revision = "1.0.00"
+    
+    # 保存新的版本号和哈希值
+    with open(revision_file, 'w') as f:
+        f.write(f"{new_revision}\n{current_hash}\n")
+    
+    return new_revision
+
+# 获取当前版本号
+REVISION = get_revision()
+
+# Test comment to trigger revision increment
 
 class AxisRangeDialog(QDialog):
     def __init__(self, axis_type, current_min, current_max, parent=None):
@@ -258,6 +310,10 @@ class DL24App(QMainWindow):
         self.display_widget = DisplayWidget(main_widget)
         self.display_widget.setStyleSheet("background-color: white;")
         
+        # 2. 版本号标签
+        self.revision_label = QLabel(f"Revision: {REVISION}")
+        self.revision_label.setParent(main_widget)
+        
         # 连接窗口大小变化信号
         self.resizeEvent = self.on_resize
         
@@ -341,6 +397,11 @@ class DL24App(QMainWindow):
         
         # 强制重绘以确保矩形和原点显示
         self.display_widget.update()
+        
+        # 定位版本号标签到主布局的左下角
+        label_x = left_margin
+        label_y = ui_height - bottom_margin + 10  # 10像素的偏移量
+        self.revision_label.setGeometry(int(label_x), int(label_y), 200, 30)
         
     def init_timer(self):
         # 数据更新定时器
