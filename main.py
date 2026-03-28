@@ -689,6 +689,14 @@ class DL24App(QMainWindow):
             int(widget_height)
         )
         
+        # 计算PlotWindow的大小（与DisplayWidget中相同的计算方式）
+        left_space = widget_width / 8
+        right_space = (widget_width / 16) * 0.7
+        bottom_space = widget_height / 10
+        top_space = widget_height * 3 / 40
+        plot_width = widget_width - left_space - right_space
+        plot_height = widget_height - top_space - bottom_space
+        
         # 获取实际widget大小
         actual_width = self.display_widget.width()
         actual_height = self.display_widget.height()
@@ -701,34 +709,34 @@ class DL24App(QMainWindow):
         label_y = ui_height - bottom_margin + 10  # 10像素的偏移量
         self.revision_label.setGeometry(int(label_x), int(label_y), 200, 30)
         
-        # 定位第一个刻度线widget到主布局的右侧，高度为主体布局的50%
+        # 定位第一个刻度线widget到主布局的右侧，高度为PlotWindow的高度
         scale_x = left_margin + widget_width + 20  # 20像素的间距
-        scale_height = ui_height * 0.5  # 主体布局高度的50%
+        scale_height = plot_height  # PlotWindow的高度
         scale_y = (ui_height - (scale_height + 2 * self.scale_line.padding)) / 2 - 150  # 垂直居中，上移150像素，考虑上下边距
         scale_width = 150  # 进一步增加宽度以显示完整的数字
         self.scale_line.set_height(scale_height)
         self.scale_line.setGeometry(int(scale_x), int(scale_y), scale_width, int(scale_height + 2 * self.scale_line.padding))
         
-        # 定位第三个刻度线widget（I Scale）到中间，高度为P Scale的75%
+        # 定位第三个刻度线widget（I Scale）到中间，高度为PlotWindow的高度
         scale3_width = 200  # 宽度与V Scale一致，以容纳左侧文本
-        scale3_height = scale_height * 0.75  # P Scale高度的75%
+        scale3_height = plot_height  # PlotWindow的高度
         # 计算中间位置，在P Scale和V Scale之间
         scale3_x = (scale_x + scale_width + (ui_width - 200 - 20)) / 2 - scale3_width / 2
         scale3_y = (ui_height - (scale3_height + 2 * self.scale_line3.padding)) / 2 - 150  # 垂直居中，上移150像素，考虑上下边距
         self.scale_line3.set_height(scale3_height)
         self.scale_line3.setGeometry(int(scale3_x), int(scale3_y), scale3_width, int(scale3_height + 2 * self.scale_line3.padding))
         
-        # 定位第二个刻度线widget到主布局的右侧，高度为主体布局的3/5
+        # 定位第二个刻度线widget到主布局的右侧，高度为PlotWindow的高度
         # 增加宽度以容纳左侧的文本
         scale2_width = 200  # 增加宽度以容纳左侧的文本
         scale2_x = ui_width - scale2_width - 20  # 20像素的间距，靠近右侧边缘
-        scale2_height = ui_height * 0.6  # 主体布局高度的3/5
+        scale2_height = plot_height  # PlotWindow的高度
         scale2_y = (ui_height - (scale2_height + 2 * self.scale_line2.padding)) / 2  # 垂直居中，考虑上下边距
         self.scale_line2.set_height(scale2_height)
         self.scale_line2.setGeometry(int(scale2_x), int(scale2_y), scale2_width, int(scale2_height + 2 * self.scale_line2.padding))
         
-        # 定位第四个刻度线widget（T Scale，水平）到主布局的下方，宽度为主体布局的3/4
-        scale4_width = ui_width * 0.75  # 主体布局宽度的3/4
+        # 定位第四个刻度线widget（T Scale，水平）到主布局的下方，宽度为PlotWindow的宽度
+        scale4_width = plot_width  # PlotWindow的宽度
         scale4_x = (ui_width - scale4_width) / 2  # 水平居中
         scale4_y = ui_height - 120  # 位于主布局下方，上移20像素
         self.scale_line4.set_width(scale4_width)
