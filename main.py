@@ -150,9 +150,16 @@ class OverlayWidget(QWidget):
             painter.end()
 
 class ScaleLineWidget(QWidget):
+    # 定义信号，当刻度线被双击时发射
+    from PyQt5.QtCore import pyqtSignal
+    doubleClicked = pyqtSignal()
+    
     def __init__(self, parent=None, height=300, scale_width=300, num_markers=6, min_value=0, max_value=200, color=QColor(255, 165, 0), label="(W)", marker_direction="right", alignment="left", orientation="vertical"):
         super().__init__(parent)
         self.setStyleSheet("background-color: transparent;")
+        # 确保widget接收鼠标事件
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+        self.setMouseTracking(True)
         if orientation == "vertical":
             self.setMinimumSize(150, height)
         else:
@@ -171,6 +178,19 @@ class ScaleLineWidget(QWidget):
         self.marker_direction = marker_direction  # 标记方向："left", "right", "up", "down"
         self.alignment = alignment  # 数字对齐方式："left" 或 "right"
         self.orientation = orientation  # 方向："vertical" 或 "horizontal"
+    
+    def mouseDoubleClickEvent(self, event):
+        # 当双击时直接打开对话框
+        from PyQt5.QtWidgets import QDialog
+        dialog = ScaleRangeDialog(self.min_value, self.max_value, self.parent())
+        if dialog.exec_() == QDialog.Accepted:
+            new_min, new_max = dialog.get_values()
+            if new_min is not None and new_max is not None:
+                # 更新刻度范围
+                self.set_range(new_min, new_max)
+                # 强制刷新显示
+                self.update()
+        super().mouseDoubleClickEvent(event)
     
     def set_height(self, height):
         """设置刻度线高度"""
@@ -318,6 +338,49 @@ class ScaleLineWidget(QWidget):
                     painter.drawText(text_rect, align_flag | Qt.AlignVCenter, formatted_value)
         finally:
             painter.end()
+
+class ScaleRangeDialog(QDialog):
+    def __init__(self, current_min, current_max, parent=None):
+        from PyQt5.QtWidgets import QLineEdit, QLabel, QVBoxLayout, QGridLayout, QPushButton, QHBoxLayout
+        super().__init__(parent)
+        self.setWindowTitle("设置刻度范围")
+        
+        layout = QVBoxLayout(self)
+        
+        # 创建输入控件
+        grid_layout = QGridLayout()
+        
+        grid_layout.addWidget(QLabel("最大值:"), 0, 0)
+        self.max_edit = QLineEdit(str(current_max))
+        grid_layout.addWidget(self.max_edit, 0, 1)
+        
+        grid_layout.addWidget(QLabel("最小值:"), 1, 0)
+        self.min_edit = QLineEdit(str(current_min))
+        grid_layout.addWidget(self.min_edit, 1, 1)
+        
+        layout.addLayout(grid_layout)
+        
+        # 创建按钮
+        button_layout = QHBoxLayout()
+        self.ok_button = QPushButton("确定")
+        self.cancel_button = QPushButton("取消")
+        
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+        
+        layout.addLayout(button_layout)
+        
+        # 连接信号
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+    
+    def get_values(self):
+        try:
+            min_val = float(self.min_edit.text())
+            max_val = float(self.max_edit.text())
+            return min_val, max_val
+        except ValueError:
+            return None, None
 
 class PlotWindow(QWidget):
     def __init__(self, parent=None):
@@ -531,6 +594,12 @@ class DL24App(QMainWindow):
         # 连接窗口大小变化信号
         self.resizeEvent = self.on_resize
         
+        # 连接刻度线双击信号
+        self.scale_line.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line))
+        self.scale_line2.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line2))
+        self.scale_line3.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line3))
+        self.scale_line4.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line4))
+        
         # 初始调整大小
         self.on_resize(None)
         
@@ -576,6 +645,21 @@ class DL24App(QMainWindow):
             
             # 刷新整个图形
         self.display_widget.update()
+    
+    def on_scale_double_click(self, scale_widget):
+        # 双击刻度线修改范围
+        current_min = scale_widget.min_value
+        current_max = scale_widget.max_value
+        
+        # 使用自定义对话框同时设置最小值和最大值
+        dialog = ScaleRangeDialog(current_min, current_max, self)
+        if dialog.exec_() == QDialog.Accepted:
+            new_min, new_max = dialog.get_values()
+            if new_min is not None and new_max is not None:
+                # 更新刻度范围
+                scale_widget.set_range(new_min, new_max)
+                # 强制刷新显示
+                scale_widget.update()
         
     def on_resize(self, event):
         """窗口大小变化时更新显示widget的位置和大小"""
