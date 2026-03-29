@@ -627,7 +627,7 @@ class DL24App(QMainWindow):
             min_value=0, 
             max_value=300,  # 范围改为0-300
             color=QColor(128, 128, 128),  # 灰色
-            label="(Min)", 
+            label="(S)", 
             marker_direction="down",  # 标记指向下方
             alignment="center",  # 数字居中对齐
             orientation="horizontal"  # 水平方向
