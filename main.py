@@ -51,6 +51,17 @@ def get_revision():
                 else:
                     major, minor, patch = map(int, stored_revision.split('.'))
                     patch += 1
+                    
+                    # 当补丁版本达到99时，重置为00并递增次版本号
+                    if patch > 99:
+                        patch = 0
+                        minor += 1
+                        
+                        # 当次版本号达到99时，重置为00并递增主版本号
+                        if minor > 99:
+                            minor = 0
+                            major += 1
+                    
                     new_revision = f"{major}.{minor}.{patch:02d}"
             else:
                 # 文件格式不正确，使用默认版本号
@@ -68,7 +79,7 @@ def get_revision():
 # 获取当前版本号
 REVISION = get_revision()
 
-# Test comment to trigger revision increment
+# Test comment to trigger revision increment - updated again
 
 class AxisRangeDialog(QDialog):
     def __init__(self, axis_type, current_min, current_max, parent=None):
@@ -140,14 +151,46 @@ class OverlayWidget(QWidget):
         # 创建QPainter对象
         painter = QPainter(self)
         try:
-            # 绘制紫色原点（PlotWindow的左下角）
-            origin_x = x
-            origin_y = y + height
-            painter.setPen(QPen(QColor(128, 0, 128), 4))
+            # 计算可绘制区域的位置（与原浅灰色框相同的区域）
+            # 考虑布局的边距：left=0, top=10, right=30, bottom=0
+            plottable_x = x + 0  # 左侧边距
+            plottable_y = y + 10  # 顶部边距
+            plottable_width = width - 30  # 宽度减去右侧边距
+            plottable_height = height - 10  # 高度减去顶部边距
+            
+            # 绘制紫色点在左上角（原浅灰色框的左边缘和上边缘的交点）
+            # 点的大小与原浅灰色框的线宽相同，居中绘制
+            painter.setPen(QPen(QColor(128, 0, 128), 1))
             painter.setBrush(QColor(128, 0, 128))
-            painter.drawEllipse(origin_x - 3, origin_y - 3, 6, 6)
+            # 调整位置使4x4点居中在角落
+            painter.drawEllipse(int(plottable_x) - 2, int(plottable_y) - 2, 4, 4)
+            
+            # 绘制黑色点在左下角（原浅灰色框的左边缘和下边缘的交点）
+            painter.setPen(QPen(QColor(0, 0, 0), 1))
+            painter.setBrush(QColor(0, 0, 0))
+            # 调整位置使4x4点居中在角落
+            painter.drawEllipse(int(plottable_x) - 2, int(plottable_y + plottable_height) - 2, 4, 4)
+            
+            # 绘制粉色点在右下角（原浅灰色框的右边缘和下边缘的交点）
+            painter.setPen(QPen(QColor(255, 192, 203), 1))
+            painter.setBrush(QColor(255, 192, 203))
+            # 调整位置使4x4点居中在角落
+            painter.drawEllipse(int(plottable_x + plottable_width) - 2, int(plottable_y + plottable_height) - 2, 4, 4)
+            
+            # 绘制深粉色点在右上角（原浅灰色框的右边缘和上边缘的交点）
+            painter.setPen(QPen(QColor(255, 105, 180), 1))
+            painter.setBrush(QColor(255, 105, 180))
+            # 调整位置使4x4点居中在角落
+            painter.drawEllipse(int(plottable_x + plottable_width) - 2, int(plottable_y) - 2, 4, 4)
+            
+            # 绘制浅灰色线连接紫色点和深粉色点
+            painter.setPen(QPen(QColor(200, 200, 200), 1))  # 浅灰色，线宽1，更明显
+            # 绘制连接线，直接使用坐标
+            painter.drawLine(int(plottable_x), int(plottable_y), int(plottable_x + plottable_width), int(plottable_y))
         finally:
             painter.end()
+    
+
 
 class ScaleLineWidget(QWidget):
     # 定义信号，当刻度线被双击时发射
@@ -232,6 +275,14 @@ class ScaleLineWidget(QWidget):
                     scale_line_x = 20  # 刻度线靠近左侧
                 painter.drawLine(scale_line_x, start_y, scale_line_x, end_y)
                 
+                # 绘制圆点在刻度线的顶部和底部，使用与刻度线相同的颜色和大小
+                painter.setPen(QPen(self.color, 2))
+                painter.setBrush(self.color)
+                # 顶部圆点，大小与刻度线宽度相同，精确居中在刻度线起点
+                painter.drawEllipse(int(scale_line_x - self.line_width/2), int(start_y - self.line_width/2), self.line_width, self.line_width)
+                # 底部圆点，大小与刻度线宽度相同，精确居中在刻度线终点
+                painter.drawEllipse(int(scale_line_x - self.line_width/2), int(end_y - self.line_width/2), self.line_width, self.line_width)
+                
                 # 在刻度线顶部添加标签
                 # 创建粗体字体
                 bold_font = QFont(self.font)
@@ -294,15 +345,23 @@ class ScaleLineWidget(QWidget):
                     scale_line_y = 50  # 刻度线居中
                 painter.drawLine(start_x, scale_line_y, end_x, scale_line_y)
                 
+                # 绘制圆点在刻度线的左侧和右侧，使用与刻度线相同的颜色和大小
+                painter.setPen(QPen(self.color, 2))
+                painter.setBrush(self.color)
+                # 左侧圆点，大小与刻度线宽度相同
+                painter.drawEllipse(int(start_x - self.line_width/2), int(scale_line_y - self.line_width/2), self.line_width, self.line_width)
+                # 右侧圆点，大小与刻度线宽度相同
+                painter.drawEllipse(int(end_x - self.line_width/2), int(scale_line_y - self.line_width/2), self.line_width, self.line_width)
+                
                 # 在刻度线右侧添加标签
                 # 创建粗体字体
                 bold_font = QFont(self.font)
                 bold_font.setBold(True)
                 painter.setFont(bold_font)
                 painter.setPen(QPen(self.color, 1))  # 使用与刻度线相同的颜色
-                # 创建文本区域，位于刻度线右侧，垂直居中
+                # 创建文本区域，位于刻度线右侧，垂直居中，向下移动1.5行，向右移动2字母
                 # 增加宽度以确保完整显示标签
-                label_rect = QRect(end_x + 20, scale_line_y - 12, 150, 24)  # 150px width, 24px height
+                label_rect = QRect(end_x + 30, scale_line_y + 24, 150, 24)  # 150px width, 24px height，向下移动1.5行，向右移动2字母
                 painter.drawText(label_rect, Qt.AlignLeft | Qt.AlignVCenter, self.label)
                 
                 # 绘制标记和数字
@@ -411,25 +470,9 @@ class PlotWindow(QWidget):
             curve = self.plot_widget.plot(pen=colors[i])
             self.curves.append(curve)
     
-    def paintEvent(self, event):
-        # 调用父类的paintEvent
-        super().paintEvent(event)
-        
-        # 获取widget的大小
-        width = self.width()
-        height = self.height()
-        
-        # 创建QPainter对象
-        painter = QPainter(self)
-        try:
-            # 绘制紫色原点（左下角）
-            origin_x = 0
-            origin_y = height
-            painter.setPen(QPen(QColor(128, 0, 128), 4))
-            painter.setBrush(QColor(128, 0, 128))
-            painter.drawEllipse(origin_x - 3, origin_y - 3, 6, 6)
-        finally:
-            painter.end()
+
+    
+
 
 class DisplayWidget(QWidget):
     def __init__(self, parent=None):
@@ -709,36 +752,97 @@ class DL24App(QMainWindow):
         label_y = ui_height - bottom_margin + 10  # 10像素的偏移量
         self.revision_label.setGeometry(int(label_x), int(label_y), 200, 30)
         
-        # 定位第一个刻度线widget到主布局的右侧，高度为PlotWindow的高度
-        scale_x = left_margin + widget_width + 20  # 20像素的间距
-        scale_height = plot_height  # PlotWindow的高度
-        scale_y = (ui_height - (scale_height + 2 * self.scale_line.padding)) / 2 - 150  # 垂直居中，上移150像素，考虑上下边距
-        scale_width = 150  # 进一步增加宽度以显示完整的数字
+        # 定位第一个刻度线widget（P Scale）到右侧，使其橙色点与浅灰色框的右上角和右下角点精确对齐
+        # 计算可绘制区域的宽度和位置
+        plottable_width = plot_width - 30  # 宽度减去右侧边距
+        plottable_height = plot_height - 10  # 高度减去顶部边距
+        plottable_x = left_margin + left_space  # 可绘制区域的左侧x坐标
+        plottable_y = top_margin + top_space + 10  # 可绘制区域的顶部y坐标
+        
+        # 计算P Scale的位置和高度（确保点的中心精确对齐）
+        # 目标：
+        # 顶部橙色点中心 = 深粉色点中心 = (plottable_x + plottable_width, plottable_y)
+        # 底部橙色点中心 = 粉色点中心 = (plottable_x + plottable_width, plottable_y + plottable_height)
+        
+        # P Scale内部坐标系统：
+        # 顶部橙色点中心：(20, 50) 相对P Scale widget
+        # 底部橙色点中心：(20, 50 + scale_height) 相对P Scale widget
+        
+        # 计算P Scale widget的位置
+        scale_x = (plottable_x + plottable_width) - 20  # 20是P Scale内部橙色点中心x坐标
+        scale_y = plottable_y - 50  # 50是P Scale内部顶部橙色点中心y坐标
+        scale_height = plottable_height  # 确保底部点对齐
+        scale_width = 150  # 保持宽度以显示完整数字
+        
         self.scale_line.set_height(scale_height)
         self.scale_line.setGeometry(int(scale_x), int(scale_y), scale_width, int(scale_height + 2 * self.scale_line.padding))
         
-        # 定位第三个刻度线widget（I Scale）到中间，高度为PlotWindow的高度
+        # 定位第三个刻度线widget（I Scale），使其红色点与浅灰色框的左上角和左下角点垂直对齐，并水平居中在Zone 1左边缘和PlotWindow左边缘之间
+        # 计算可绘制区域的宽度和位置
+        plottable_width = plot_width - 30  # 宽度减去右侧边距
+        plottable_height = plot_height - 10  # 高度减去顶部边距
+        plottable_x = left_margin + left_space  # 可绘制区域的左侧x坐标
+        plottable_y = top_margin + top_space + 10  # 可绘制区域的顶部y坐标
+        
+        # 计算I Scale的位置和高度
+        # 目标：
+        # 顶部红色点中心y = 紫色点中心y = plottable_y
+        # 底部红色点中心y = 黑色点中心y = plottable_y + plottable_height
+        # 红色点中心x = (0 + plottable_x) / 2  # 中间位置（Zone 1左边缘到PlotWindow左边缘）
+        
+        # I Scale内部坐标系统（marker_direction="left"）：
+        # 顶部红色点中心：(scale3_width - 20, 50) 相对I Scale widget
+        # 底部红色点中心：(scale3_width - 20, 50 + scale3_height) 相对I Scale widget
+        
+        # 计算I Scale widget的位置
         scale3_width = 200  # 宽度与V Scale一致，以容纳左侧文本
-        scale3_height = plot_height  # PlotWindow的高度
-        # 计算中间位置，在P Scale和V Scale之间
-        scale3_x = (scale_x + scale_width + (ui_width - 200 - 20)) / 2 - scale3_width / 2
-        scale3_y = (ui_height - (scale3_height + 2 * self.scale_line3.padding)) / 2 - 150  # 垂直居中，上移150像素，考虑上下边距
+        # 向左移动10%：当前位置是70%，移动后为60%的位置
+        red_dot_x = (0 + plottable_x) * 0.6  # 60%的位置
+        scale3_x = red_dot_x - (scale3_width - 20)  # 20是I Scale内部红色点中心x坐标（从右侧边缘）
+        scale3_y = plottable_y - 50  # 50是I Scale内部顶部红色点中心y坐标
+        scale3_height = plottable_height  # 确保底部点对齐
+        
         self.scale_line3.set_height(scale3_height)
         self.scale_line3.setGeometry(int(scale3_x), int(scale3_y), scale3_width, int(scale3_height + 2 * self.scale_line3.padding))
         
-        # 定位第二个刻度线widget到主布局的右侧，高度为PlotWindow的高度
-        # 增加宽度以容纳左侧的文本
+        # 定位第二个刻度线widget（V Scale）到右侧，使其蓝色点与浅灰色框的左上角和左下角点精确对齐
+        # 计算V Scale的位置和高度（确保点的中心精确对齐）
+        # 目标：
+        # 顶部蓝色点中心 = 紫色点中心 = (plottable_x, plottable_y)
+        # 底部蓝色点中心 = 黑色点中心 = (plottable_x, plottable_y + plottable_height)
+        
+        # V Scale内部坐标系统：
+        # 顶部蓝色点中心：(V Scale宽度 - 20, 50) 相对V Scale widget
+        # 底部蓝色点中心：(V Scale宽度 - 20, 50 + scale2_height) 相对V Scale widget
+        
+        # 计算V Scale widget的位置
         scale2_width = 200  # 增加宽度以容纳左侧的文本
-        scale2_x = ui_width - scale2_width - 20  # 20像素的间距，靠近右侧边缘
-        scale2_height = plot_height  # PlotWindow的高度
-        scale2_y = (ui_height - (scale2_height + 2 * self.scale_line2.padding)) / 2  # 垂直居中，考虑上下边距
+        scale2_x = plottable_x - (scale2_width - 20)  # 20是V Scale内部蓝色点中心x坐标（从右侧边缘）
+        scale2_y = plottable_y - 50  # 50是V Scale内部顶部蓝色点中心y坐标
+        scale2_height = plottable_height  # 确保底部点对齐
         self.scale_line2.set_height(scale2_height)
         self.scale_line2.setGeometry(int(scale2_x), int(scale2_y), scale2_width, int(scale2_height + 2 * self.scale_line2.padding))
         
-        # 定位第四个刻度线widget（T Scale，水平）到主布局的下方，宽度为PlotWindow的宽度
-        scale4_width = plot_width  # PlotWindow的宽度
-        scale4_x = (ui_width - scale4_width) / 2  # 水平居中
-        scale4_y = ui_height - 120  # 位于主布局下方，上移20像素
+        # 定位第四个刻度线widget（T Scale，水平）到主布局的下方，使其灰色点与浅灰色框的左下角和右下角点精确对齐
+        # 计算可绘制区域的宽度和位置
+        plottable_width = plot_width - 30  # 宽度减去右侧边距
+        plottable_x = left_margin + left_space  # 可绘制区域的左侧x坐标
+        plottable_bottom_y = top_margin + top_space + plot_height  # 可绘制区域的底部y坐标
+        
+        # 计算T Scale的位置和宽度（确保点的中心精确对齐）
+        # 目标：
+        # 左侧灰色点中心 = 黑色点中心 = (plottable_x, plottable_y + plottable_height)
+        # 右侧灰色点中心 = 粉色点中心 = (plottable_x + plottable_width, plottable_y + plottable_height)
+        
+        # T Scale内部坐标系统：
+        # 左侧灰色点中心：(50, 50) 相对T Scale widget （padding=50）
+        # 右侧灰色点中心：(50 + scale4_width, 50) 相对T Scale widget
+        
+        # 计算T Scale widget的位置
+        scale4_width = plottable_width  # 确保宽度匹配可绘制区域
+        scale4_x = plottable_x - 50  # 50是T Scale内部左侧灰色点中心x坐标
+        scale4_y = (plottable_y + plottable_height) - 50  # 50是T Scale内部灰色点中心y坐标
+        
         self.scale_line4.set_width(scale4_width)
         self.scale_line4.setGeometry(int(scale4_x), int(scale4_y), int(scale4_width + 2 * self.scale_line4.padding), 100)
         
