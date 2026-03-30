@@ -628,8 +628,48 @@ class DL24App(QMainWindow):
         # 设置初始字体
         font = QFont("Courier New", 14, QFont.Light)  # 使用更薄的等宽字体
         
+        # 3. 显示widget (Zone 3)
+        self.zone3_widget = QWidget(main_widget)
+        self.zone3_widget.setStyleSheet("background-color: white; border: 1px solid green;")
+        
+        # 创建Zone3的布局为垂直布局
+        self.zone3_layout = QVBoxLayout(self.zone3_widget)
+        # 设置布局边距
+        self.zone3_layout.setContentsMargins(0, 20, 0, 0)  # 顶部边距20px
+        # 设置垂直间距为0
+        self.zone3_layout.setSpacing(0)
+        # 设置布局对齐方式为顶部
+        self.zone3_layout.setAlignment(Qt.AlignTop)
+        
+        # 添加Zone3标题
+        self.zone3_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;参数设置</span>')
+        self.zone3_title.setAlignment(Qt.AlignLeft)  # 左对齐
+        self.zone3_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone3_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
+        self.zone3_layout.addWidget(self.zone3_title)
+        
+        # 4. 显示widget (Zone 4)
+        self.zone4_widget = QWidget(main_widget)
+        self.zone4_widget.setStyleSheet("background-color: white; border: 1px solid blue;")
+        
+        # 创建Zone4的布局为垂直布局
+        self.zone4_layout = QVBoxLayout(self.zone4_widget)
+        # 设置布局边距
+        self.zone4_layout.setContentsMargins(0, 20, 0, 0)  # 顶部边距20px
+        # 设置垂直间距为0
+        self.zone4_layout.setSpacing(0)
+        # 设置布局对齐方式为顶部
+        self.zone4_layout.setAlignment(Qt.AlignTop)
+        
+        # 添加Zone4标题
+        self.zone4_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;通信设置</span>')
+        self.zone4_title.setAlignment(Qt.AlignLeft)  # 左对齐
+        self.zone4_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone4_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
+        self.zone4_layout.addWidget(self.zone4_title)
+        
         # 添加Zone2标题
-        self.zone2_title = QLabel('<span>&nbsp;&nbsp;&nbsp;实时数据</span>')
+        self.zone2_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;实时数据</span>')
         self.zone2_title.setAlignment(Qt.AlignLeft)  # 左对齐
         self.zone2_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
         self.zone2_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
@@ -865,6 +905,15 @@ class DL24App(QMainWindow):
             # 应用字体大小
             font = QFont("Courier New", int(font_size), QFont.Light)  # 使用更薄的等宽字体
             
+            # 获取Zone2标题的字体
+            zone2_title_font = self.zone2_title.font()
+            
+            # 更新Zone3和Zone4的标题字体以匹配Zone2的标题字体
+            if hasattr(self, 'zone3_title'):
+                self.zone3_title.setFont(zone2_title_font)
+            if hasattr(self, 'zone4_title'):
+                self.zone4_title.setFont(zone2_title_font)
+            
             # 计算Zone2的高度：从顶部到line3底部
             # 计算标题高度
             title_font_metrics = QFontMetrics(self.zone2_title.font())
@@ -900,6 +949,34 @@ class DL24App(QMainWindow):
                 int(top_margin),
                 int(zone2_width),
                 int(zone2_height)
+            )
+            
+            # 计算Zone3的位置和大小
+            zone3_x = zone2_x
+            zone3_y = top_margin + zone2_height + top_margin  # 与Zone2的间距与Zone2上方的间距相同
+            zone3_width = zone2_width  # 与Zone2宽度相同
+            zone3_height = ui_height / 4  # 高度为总主层高度的1/4
+            
+            # 使用绝对定位设置Zone3的位置和大小
+            self.zone3_widget.setGeometry(
+                int(zone3_x),
+                int(zone3_y),
+                int(zone3_width),
+                int(zone3_height)
+            )
+            
+            # 计算Zone4的位置和大小
+            zone4_x = zone2_x
+            zone4_y = zone3_y + zone3_height + top_margin  # 与Zone3的间距与Zone2和Zone3之间的间距相同
+            zone4_width = zone2_width  # 与Zone2宽度相同
+            zone4_height = ui_height / 4  # 高度为总主层高度的1/4
+            
+            # 使用绝对定位设置Zone4的位置和大小
+            self.zone4_widget.setGeometry(
+                int(zone4_x),
+                int(zone4_y),
+                int(zone4_width),
+                int(zone4_height)
             )
             
             # 更新标签文本和字体
