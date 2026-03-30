@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QGroupBox, QCheckBox,
     QDoubleSpinBox, QGridLayout, QMessageBox, QSizePolicy, QInputDialog,
-    QDialog, QFormLayout, QDialogButtonBox,
+    QDialog, QFormLayout, QDialogButtonBox, QSpacerItem,
     QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene
 )
 from PyQt5.QtCore import Qt, QTimer, QRect
@@ -20,7 +20,7 @@ import serial.tools.list_ports
 VERSION = "0.00.80"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# 计算代码哈希值的函数
+# 计算代码哈希的函数
 def calculate_code_hash():
     """计算当前代码的哈希值，用于检测代码变化"""
     hash_obj = hashlib.md5()
@@ -30,12 +30,12 @@ def calculate_code_hash():
         hash_obj.update(content)
     return hash_obj.hexdigest()
 
-# 跟踪版本号的函数
+# 管理版本号的函数
 def get_revision():
     """获取当前版本号，如果代码有变化则自动递增"""
     revision_file = "revision.txt"
     current_hash = calculate_code_hash()
-    
+
     try:
         # 尝试读取当前版本号和哈希值
         with open(revision_file, 'r') as f:
@@ -43,25 +43,14 @@ def get_revision():
             if len(lines) >= 2:
                 stored_revision = lines[0].strip()
                 stored_hash = lines[1].strip()
-                
+
                 # 如果哈希值相同，返回当前版本号
                 if stored_hash == current_hash:
                     return stored_revision
                 # 如果哈希值不同，递增版本号
-                else:
-                    major, minor, patch = map(int, stored_revision.split('.'))
+                else: 
+                    major, minor, patch = map(int, stored_revision.split('.')) 
                     patch += 1
-                    
-                    # 当补丁版本达到99时，重置为00并递增次版本号
-                    if patch > 99:
-                        patch = 0
-                        minor += 1
-                        
-                        # 当次版本号达到99时，重置为00并递增主版本号
-                        if minor > 99:
-                            minor = 0
-                            major += 1
-                    
                     new_revision = f"{major}.{minor}.{patch:02d}"
             else:
                 # 文件格式不正确，使用默认版本号
@@ -69,11 +58,11 @@ def get_revision():
     except FileNotFoundError:
         # 文件不存在，使用默认版本号
         new_revision = "1.0.00"
-    
+
     # 保存新的版本号和哈希值
     with open(revision_file, 'w') as f:
         f.write(f"{new_revision}\n{current_hash}\n")
-    
+
     return new_revision
 
 # 获取当前版本号
@@ -627,17 +616,77 @@ class DL24App(QMainWindow):
         self.zone2_widget = QWidget(main_widget)
         self.zone2_widget.setStyleSheet("background-color: white; border: 1px solid purple;")
         
-        # 创建Zone2的布局为网格布局，确保列对齐
-        self.zone2_layout = QGridLayout(self.zone2_widget)
-        # 设置布局边距，添加顶部边距以创建一行间距（两个半行）
+        # 创建Zone2的布局为垂直布局
+        self.zone2_layout = QVBoxLayout(self.zone2_widget)
+        # 设置布局边距
         self.zone2_layout.setContentsMargins(0, 20, 0, 0)  # 顶部边距20px
-        # 设置行间距为0
-        self.zone2_layout.setVerticalSpacing(0)
-        # 设置列间距为0
-        self.zone2_layout.setHorizontalSpacing(0)
-        # 设置网格布局的行最小高度为0
-        self.zone2_layout.setRowMinimumHeight(0, 0)
-        self.zone2_layout.setRowMinimumHeight(1, 0)
+        # 设置垂直间距为0
+        self.zone2_layout.setSpacing(0)
+        # 设置布局对齐方式为顶部
+        self.zone2_layout.setAlignment(Qt.AlignTop)
+        
+        # 设置初始字体
+        font = QFont("Courier New", 14, QFont.Light)  # 使用更薄的等宽字体
+        
+        # 添加Zone2标题
+        self.zone2_title = QLabel('<span>&nbsp;&nbsp;&nbsp;实时数据</span>')
+        self.zone2_title.setAlignment(Qt.AlignLeft)  # 左对齐
+        self.zone2_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone2_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
+        self.zone2_layout.addWidget(self.zone2_title)
+        
+        # 添加空行（使用QSpacerItem创建垂直空间）
+        from PyQt5.QtWidgets import QSpacerItem
+        font_metrics = QFontMetrics(self.zone2_title.font())
+        line_height = font_metrics.height()
+        spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone2_layout.addItem(spacer)
+        
+        # 创建三个标签，分别显示每行数据
+        # 第1行： 000.00V 000.00A
+        self.zone2_line1 = QLabel('<span style="color: blue;">&nbsp;000.00V</span><span style="color: red;">&nbsp;000.00A</span>')
+        self.zone2_line1.setAlignment(Qt.AlignLeft)  # 左对齐
+        self.zone2_line1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone2_line1.setFont(font)
+        self.zone2_line1.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
+        self.zone2_layout.addWidget(self.zone2_line1)
+        
+        # 添加空行（高度为line1字体高度的40%）
+        font_metrics = QFontMetrics(font)
+        line_height = font_metrics.height()
+        spacer_height = int(line_height * 0.4)
+        self.spacer_line1 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone2_layout.addItem(self.spacer_line1)
+        
+        # 第2行： 000.00W 000.00mAh
+        self.zone2_line2 = QLabel('<span style="color: orange;">&nbsp;000.00W</span><span style="color: purple;">&nbsp;000.00mAh</span>')
+        self.zone2_line2.setAlignment(Qt.AlignLeft)  # 左对齐
+        self.zone2_line2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone2_line2.setFont(font)
+        self.zone2_line2.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
+        self.zone2_layout.addWidget(self.zone2_line2)
+        
+        # 添加空行（高度为line2字体高度的40%）
+        font_metrics = QFontMetrics(font)
+        line_height = font_metrics.height()
+        spacer_height = int(line_height * 0.4)
+        self.spacer_line2 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone2_layout.addItem(self.spacer_line2)
+        
+        # 第3行： 000.00Wh
+        self.zone2_line3 = QLabel('<span style="color: darkgreen;">&nbsp;000.00Wh</span>')
+        self.zone2_line3.setAlignment(Qt.AlignLeft)  # 左对齐
+        self.zone2_line3.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone2_line3.setFont(font)
+        self.zone2_line3.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
+        self.zone2_layout.addWidget(self.zone2_line3)
+        
+        # 添加空行（高度为line3字体高度的40%）
+        font_metrics = QFontMetrics(font)
+        line_height = font_metrics.height()
+        spacer_height = int(line_height * 0.4)
+        self.spacer_line3 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone2_layout.addItem(self.spacer_line3)
         
         # 3. 刻度线widget
         self.scale_line = ScaleLineWidget(main_widget)
@@ -691,6 +740,10 @@ class DL24App(QMainWindow):
         self.scale_line2.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line2))
         self.scale_line3.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line3))
         self.scale_line4.doubleClicked.connect(lambda: self.on_scale_double_click(self.scale_line4))
+        
+        # 2. 版本号标签
+        self.revision_label = QLabel(f"Revision: {REVISION}")
+        self.revision_label.setParent(main_widget)
         
         # 初始调整大小
         self.on_resize(None)
@@ -776,26 +829,138 @@ class DL24App(QMainWindow):
         zone1_width = (ui_width - left_margin - right_margin - middle_spacing) * 0.7  # 保留Zone1的主要宽度
         zone1_height = ui_height - top_margin - bottom_margin
         
-        # 计算Zone2的位置和大小
+        # 计算Zone2的位置
         zone2_x = left_margin + zone1_width + middle_spacing
         zone2_width = ui_width - zone2_x - right_margin  # 确保右侧边距与左侧边距相同
-        zone2_height = ui_height * 3/8  # Zone2高度为总高度的3/8（增加50%）
         
-        # 使用绝对定位设置Zone1的位置和大小
-        self.display_widget.setGeometry(
-            int(left_margin),
-            int(top_margin),
-            int(zone1_width),
-            int(zone1_height)
-        )
+        # 计算三行文本的字体大小，使其填充整个宽度
+        if hasattr(self, 'zone2_line1') and hasattr(self, 'zone2_line2') and hasattr(self, 'zone2_line3'):
+            # 计算适合的字体大小
+            def calculate_font_size(text, width):
+                font_size = 10  # 起始字体大小
+                max_font_size = 200  # 最大字体大小，防止无限循环
+                font = QFont("Courier New", font_size, QFont.Light)  # 使用更薄的等宽字体
+                while font_size < max_font_size:
+                    font.setPointSize(font_size)
+                    font_metrics = QFontMetrics(font)
+                    text_width = font_metrics.width(text)
+                    if text_width > width * 0.95:  # 留5%的余量
+                        return font_size - 1
+                    font_size += 1
+                return max_font_size
+            
+            # 获取每行文本（无格式，用于计算字体大小）
+            line1_text_plain = " 000.00V 000.00A"
+            line2_text_plain = " 000.00W 000.00mAh"
+            line3_text_plain = " 000.00Wh"
+            
+            # 计算每行的字体大小
+            line1_font_size = calculate_font_size(line1_text_plain, zone2_width)
+            line2_font_size = calculate_font_size(line2_text_plain, zone2_width)
+            line3_font_size = calculate_font_size(line3_text_plain, zone2_width)
+            
+            # 使用最小的字体大小以确保所有行都能容纳
+            font_size = min(line1_font_size, line2_font_size, line3_font_size)
+            
+            # 应用字体大小
+            font = QFont("Courier New", int(font_size), QFont.Light)  # 使用更薄的等宽字体
+            
+            # 计算Zone2的高度：从顶部到line3底部
+            # 计算标题高度
+            title_font_metrics = QFontMetrics(self.zone2_title.font())
+            title_height = title_font_metrics.height()
+            
+            # 计算数据行高度
+            data_font_metrics = QFontMetrics(font)
+            data_line_height = data_font_metrics.height()
+            
+            # 计算总高度：标题 + 标题下空行 + 3行数据 + 3行空行（每行空行为数据行高度的40%）
+            zone2_height = (
+                title_height +  # 标题
+                title_height +  # 标题下空行
+                data_line_height +  # 第1行
+                data_line_height * 0.4 +  # 第1行下空行
+                data_line_height +  # 第2行
+                data_line_height * 0.4 +  # 第2行下空行
+                data_line_height +  # 第3行
+                data_line_height * 0.4  # 第3行下空行
+            )
+            
+            # 使用绝对定位设置Zone1的位置和大小
+            self.display_widget.setGeometry(
+                int(left_margin),
+                int(top_margin),
+                int(zone1_width),
+                int(zone1_height)
+            )
+            
+            # 使用绝对定位设置Zone2的位置和大小
+            self.zone2_widget.setGeometry(
+                int(zone2_x),
+                int(top_margin),
+                int(zone2_width),
+                int(zone2_height)
+            )
+            
+            # 更新标签文本和字体
+            self.zone2_line1.setText('<span style="color: blue;">&nbsp;000.00V</span><span style="color: red;">&nbsp;000.00A</span>')
+            self.zone2_line2.setText('<span style="color: orange;">&nbsp;000.00W</span><span style="color: purple;">&nbsp;000.00mAh</span>')
+            self.zone2_line3.setText('<span style="color: darkgreen;">&nbsp;000.00Wh</span>')
+            
+            # 确保大小策略为Expanding以填充水平空间
+            self.zone2_line1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.zone2_line2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.zone2_line3.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            
+            self.zone2_line1.setFont(font)
+            self.zone2_line2.setFont(font)
+            self.zone2_line3.setFont(font)
+            
+            # 更新line1下方的空行高度（为line1字体高度的40%）
+            if hasattr(self, 'spacer_line1'):
+                font_metrics = QFontMetrics(font)
+                line_height = font_metrics.height()
+                spacer_height = int(line_height * 0.4)
+                # 移除旧的spacer
+                self.zone2_layout.removeItem(self.spacer_line1)
+                # 创建新的spacer
+                self.spacer_line1 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+                # 插入到line1之后的位置
+                self.zone2_layout.insertItem(self.zone2_layout.indexOf(self.zone2_line1) + 1, self.spacer_line1)
+            
+            # 更新line2下方的空行高度（为line2字体高度的40%）
+            if hasattr(self, 'spacer_line2'):
+                font_metrics = QFontMetrics(font)
+                line_height = font_metrics.height()
+                spacer_height = int(line_height * 0.4)
+                # 移除旧的spacer
+                self.zone2_layout.removeItem(self.spacer_line2)
+                # 创建新的spacer
+                self.spacer_line2 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+                # 插入到line2之后的位置
+                self.zone2_layout.insertItem(self.zone2_layout.indexOf(self.zone2_line2) + 1, self.spacer_line2)
+            
+            # 更新line3下方的空行高度（为line3字体高度的40%）
+            if hasattr(self, 'spacer_line3'):
+                font_metrics = QFontMetrics(font)
+                line_height = font_metrics.height()
+                spacer_height = int(line_height * 0.4)
+                # 移除旧的spacer
+                self.zone2_layout.removeItem(self.spacer_line3)
+                # 创建新的spacer
+                self.spacer_line3 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+                # 插入到line3之后的位置
+                self.zone2_layout.insertItem(self.zone2_layout.indexOf(self.zone2_line3) + 1, self.spacer_line3)
+            
+            # 强制更新布局
+            self.zone2_widget.update()
+            self.zone2_widget.repaint()
         
-        # 使用绝对定位设置Zone2的位置和大小
-        self.zone2_widget.setGeometry(
-            int(zone2_x),
-            int(top_margin),
-            int(zone2_width),
-            int(zone2_height)
-        )
+        # 定位版本号标签到左下角
+        if hasattr(self, 'revision_label'):
+            label_x = left_margin
+            label_y = ui_height - bottom_margin + 10  # 10像素的偏移量       
+            self.revision_label.setGeometry(int(label_x), int(label_y), 200, 30)
         
         # 计算PlotWindow的大小（与DisplayWidget中相同的计算方式）
         left_space = zone1_width / 8
