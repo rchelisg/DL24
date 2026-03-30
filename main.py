@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene
 )
 from PyQt5.QtCore import Qt, QTimer, QRect
-from PyQt5.QtGui import QFont, QPen, QColor, QPainter
+from PyQt5.QtGui import QFont, QFontMetrics, QPen, QColor, QPainter
 import pyqtgraph as pg
 import serial
 import serial.tools.list_ports
@@ -627,9 +627,64 @@ class DL24App(QMainWindow):
         self.zone2_widget = QWidget(main_widget)
         self.zone2_widget.setStyleSheet("background-color: white; border: 1px solid purple;")
         
+        # 创建Zone2的布局为网格布局，确保列对齐
+        self.zone2_layout = QGridLayout(self.zone2_widget)
+        # 设置布局边距，添加顶部边距以创建一行间距（两个半行）
+        self.zone2_layout.setContentsMargins(0, 20, 0, 0)  # 顶部边距20px
+        # 设置行间距为0
+        self.zone2_layout.setVerticalSpacing(0)
+        # 设置列间距为0
+        self.zone2_layout.setHorizontalSpacing(0)
+        # 设置网格布局的行最小高度为0
+        self.zone2_layout.setRowMinimumHeight(0, 0)
+        self.zone2_layout.setRowMinimumHeight(1, 0)
+        
+        # 设置初始字体
+        font = QFont("Courier New", 14, QFont.Light)  # 使用更薄的等宽字体
+        
+        # V参数显示 - 左上角
+        self.v_label = QLabel(" 000.00V")  # 半字母空格（使用两个空格），移除V前的空格
+        self.v_label.setAlignment(Qt.AlignLeft)  # 左对齐以确保前导0对齐
+        self.v_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Minimum以减少垂直空间
+        self.v_label.setFont(font)
+        self.v_label.setStyleSheet("border: none; background-color: transparent; color: blue; padding: 0; margin: 0;")  # 设置蓝色，移除内边距和外边距
+        self.zone2_layout.addWidget(self.v_label, 0, 0)  # 第0行，第0列
+        
+        # I参数显示 - 右上角
+        self.i_label = QLabel(" 000.00A")  # 半字母空格（使用两个空格），移除A前的空格
+        self.i_label.setAlignment(Qt.AlignLeft)  # 左对齐以确保前导0对齐
+        self.i_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Minimum以减少垂直空间
+        self.i_label.setFont(font)
+        self.i_label.setStyleSheet("border: none; background-color: transparent; color: red; padding: 0; margin: 0;")  # 设置红色，移除内边距和外边距
+        self.zone2_layout.addWidget(self.i_label, 0, 1)  # 第0行，第1列
+        
+        # W参数显示 - 左下角
+        self.w_label = QLabel(" 000.00W")  # 半字母空格（使用两个空格），移除W前的空格
+        self.w_label.setAlignment(Qt.AlignLeft)  # 左对齐以确保前导0对齐
+        self.w_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Minimum以减少垂直空间
+        self.w_label.setFont(font)
+        self.w_label.setStyleSheet("border: none; background-color: transparent; color: orange; padding: 0; margin: 0;")  # 设置橙色，移除内边距和外边距
+        self.zone2_layout.addWidget(self.w_label, 1, 0)  # 第1行，第0列
+        
+        # mAh参数显示 - 右下角
+        self.mah_label = QLabel(" 000.00mAh")  # 半字母空格（使用两个空格），移除mAh前的空格
+        self.mah_label.setAlignment(Qt.AlignLeft)  # 左对齐以确保前导0对齐
+        self.mah_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Minimum以减少垂直空间
+        self.mah_label.setFont(font)
+        self.mah_label.setStyleSheet("border: none; background-color: transparent; color: purple; padding: 0; margin: 0;")  # 设置紫色，移除内边距和外边距
+        self.zone2_layout.addWidget(self.mah_label, 1, 1)  # 第1行，第1列
+        
+        # 设置两列均分水平空间
+        self.zone2_layout.setColumnStretch(0, 1)
+        self.zone2_layout.setColumnStretch(1, 1)
+        
         # 2. 版本号标签
         self.revision_label = QLabel(f"Revision: {REVISION}")
         self.revision_label.setParent(main_widget)
+        
+        # 3. 信息标签，显示Zone2的位置、宽度和字体大小
+        self.info_label = QLabel("Zone2 Info:")
+        self.info_label.setParent(main_widget)
         
         # 3. 刻度线widget
         self.scale_line = ScaleLineWidget(main_widget)
@@ -788,6 +843,118 @@ class DL24App(QMainWindow):
             int(zone2_width),
             int(zone2_height)
         )
+        
+        # 计算V、I、W和mAh标签的字体大小，使其填充整个宽度
+        if hasattr(self, 'v_label') and hasattr(self, 'i_label') and hasattr(self, 'w_label') and hasattr(self, 'mah_label'):
+            # 计算每个标签的可用宽度
+            label_width = zone2_width / 2
+            
+            # 计算适合的字体大小
+            def calculate_font_size(text, width):
+                font_size = 10  # 起始字体大小
+                max_font_size = 200  # 最大字体大小，防止无限循环
+                font = QFont("Courier New", font_size, QFont.Light)  # 使用更薄的等宽字体
+                while font_size < max_font_size:
+                    font.setPointSize(font_size)
+                    font_metrics = QFontMetrics(font)
+                    text_width = font_metrics.width(text)
+                    if text_width > width * 0.95:  # 留5%的余量
+                        return font_size - 1
+                    font_size += 1
+                return max_font_size
+            
+            # 计算V标签的字体大小（添加半字母空格，移除V前的空格）
+            v_text = " 000.00V"  # 半字母空格（使用两个空格）
+            v_font_size = calculate_font_size(v_text, label_width)
+            
+            # 计算I标签的字体大小（添加半字母空格，移除A前的空格）
+            i_text = " 000.00A"  # 半字母空格（使用两个空格）
+            i_font_size = calculate_font_size(i_text, label_width)
+            
+            # 定义W和mAh标签的文本（添加半字母空格，移除单位前的空格）
+            w_text = " 000.00W"  # 半字母空格（使用两个空格）
+            mah_text = " 000.00mAh"  # 半字母空格（使用两个空格）
+            
+            # 使用第一行的字体大小（V和I的最小值）
+            font_size = min(v_font_size, i_font_size)
+            
+            # 应用字体大小
+            font = QFont("Courier New", int(font_size), QFont.Light)  # 使用更薄的等宽字体
+            
+            # 更新标签文本和字体
+            self.v_label.setText(v_text)
+            self.i_label.setText(i_text)
+            self.w_label.setText(w_text)
+            self.mah_label.setText(mah_text)
+            
+            # 确保大小策略为Minimum以减少垂直空间
+            self.v_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.i_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.w_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.mah_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            
+            self.v_label.setFont(font)
+            self.i_label.setFont(font)
+            self.w_label.setFont(font)
+            self.mah_label.setFont(font)
+            
+            # 确保没有边框，并设置颜色
+            self.v_label.setStyleSheet("border: none; background-color: transparent; color: blue; padding: 0; margin: 0;")  # 设置蓝色，移除内边距和外边距
+            self.i_label.setStyleSheet("border: none; background-color: transparent; color: red; padding: 0; margin: 0;")  # 设置红色，移除内边距和外边距
+            self.w_label.setStyleSheet("border: none; background-color: transparent; color: orange; padding: 0; margin: 0;")  # 设置橙色，移除内边距和外边距
+            self.mah_label.setStyleSheet("border: none; background-color: transparent; color: purple; padding: 0; margin: 0;")  # 设置紫色，移除内边距和外边距
+            
+            # 强制更新布局
+            self.zone2_widget.update()
+            self.zone2_widget.repaint()
+        
+        # 更新信息标签，显示Zone2的位置、宽度和字体大小
+        if hasattr(self, 'info_label'):
+            # 计算Zone2的左右x坐标
+            zone2_left_x = zone2_x
+            zone2_right_x = zone2_x + zone2_width
+            
+            # 计算字体大小
+            # 计算每个标签的可用宽度
+            label_width = zone2_width / 2
+            
+            # 计算适合的字体大小
+            def calculate_font_size(text, width):
+                font_size = 10  # 起始字体大小
+                max_font_size = 200  # 最大字体大小，防止无限循环
+                font = QFont()
+                while font_size < max_font_size:
+                    font.setPointSize(font_size)
+                    font_metrics = QFontMetrics(font)
+                    text_width = font_metrics.width(text)
+                    if text_width > width * 0.95:  # 留5%的余量
+                        return font_size - 1
+                    font_size += 1
+                return max_font_size
+            
+            # 计算V标签的字体大小
+            v_text = "000.00 V"
+            v_font_size = calculate_font_size(v_text, label_width)
+            
+            # 计算I标签的字体大小
+            i_text = "000.00 A"
+            i_font_size = calculate_font_size(i_text, label_width)
+            
+            # 使用较小的字体大小以确保两者都能容纳
+            font_size = min(v_font_size, i_font_size)
+            
+            # 更新标签内容
+            self.info_label.setText(
+                f"1. Left x: {zone2_left_x:.2f}\n" 
+                f"2. Right x: {zone2_right_x:.2f}\n" 
+                f"3. Width: {zone2_width:.2f}\n" 
+                f"4. Font size: {font_size:.2f}px"
+            )
+            
+            # 定位信息标签到Zone2的下方
+            info_x = zone2_x
+            info_y = top_margin + zone2_height + 10  # 在Zone2下方10px
+            self.info_label.setGeometry(int(info_x), int(info_y), 250, 150)  # 增加高度以显示所有行
         
         # 计算PlotWindow的大小（与DisplayWidget中相同的计算方式）
         left_space = zone1_width / 8
