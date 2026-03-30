@@ -623,6 +623,10 @@ class DL24App(QMainWindow):
         # 设置OverlayWidget的main_window引用
         self.display_widget.overlay.set_main_window(self)
         
+        # 2. 显示widget (Zone 2)
+        self.zone2_widget = QWidget(main_widget)
+        self.zone2_widget.setStyleSheet("background-color: white; border: 1px solid purple;")
+        
         # 2. 版本号标签
         self.revision_label = QLabel(f"Revision: {REVISION}")
         self.revision_label.setParent(main_widget)
@@ -755,27 +759,43 @@ class DL24App(QMainWindow):
         left_margin = ui_width / 40  # 减少50%
         top_margin = ui_height / 30  # 减少50%
         bottom_margin = ui_height / 7.5  # 减少1/3 (从1/5变为1/7.5)
-        right_margin = ui_width * 4/15  # 减少20% (从1/3变为4/15)
+        right_margin = left_margin  # 右侧边距与左侧边距相同
         
-        # 计算显示widget的大小和位置
-        widget_width = ui_width - left_margin - right_margin
-        widget_height = ui_height - top_margin - bottom_margin
+        # 计算中间间距（与左侧边距相同）
+        middle_spacing = left_margin
         
-        # 使用绝对定位设置widget的位置和大小
+        # 计算Zone1的大小和位置（恢复原始大小）
+        zone1_width = (ui_width - left_margin - right_margin - middle_spacing) * 0.7  # 保留Zone1的主要宽度
+        zone1_height = ui_height - top_margin - bottom_margin
+        
+        # 计算Zone2的位置和大小
+        zone2_x = left_margin + zone1_width + middle_spacing
+        zone2_width = ui_width - zone2_x - right_margin  # 确保右侧边距与左侧边距相同
+        zone2_height = ui_height * 3/8  # Zone2高度为总高度的3/8（增加50%）
+        
+        # 使用绝对定位设置Zone1的位置和大小
         self.display_widget.setGeometry(
             int(left_margin),
             int(top_margin),
-            int(widget_width),
-            int(widget_height)
+            int(zone1_width),
+            int(zone1_height)
+        )
+        
+        # 使用绝对定位设置Zone2的位置和大小
+        self.zone2_widget.setGeometry(
+            int(zone2_x),
+            int(top_margin),
+            int(zone2_width),
+            int(zone2_height)
         )
         
         # 计算PlotWindow的大小（与DisplayWidget中相同的计算方式）
-        left_space = widget_width / 8
-        right_space = (widget_width / 16) * 0.7
-        bottom_space = widget_height / 10
-        top_space = widget_height * 3 / 40
-        plot_width = widget_width - left_space - right_space
-        plot_height = widget_height - top_space - bottom_space
+        left_space = zone1_width / 8
+        right_space = (zone1_width / 16) * 0.7
+        bottom_space = zone1_height / 10
+        top_space = zone1_height * 3 / 40
+        plot_width = zone1_width - left_space - right_space
+        plot_height = zone1_height - top_space - bottom_space
         
         # 获取实际widget大小
         actual_width = self.display_widget.width()
