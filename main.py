@@ -130,14 +130,18 @@ class AxisRangeDialog(QDialog):
         return self.min_input.value(), self.max_input.value()
 
 class OverlayWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
         # 设置透明背景
         self.setStyleSheet("background-color: transparent;")
         self.plot_window = None
+        self.main_window = main_window
     
     def set_plot_window(self, plot_window):
         self.plot_window = plot_window
+    
+    def set_main_window(self, main_window):
+        self.main_window = main_window
     
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -187,6 +191,37 @@ class OverlayWidget(QWidget):
             painter.setPen(QPen(QColor(200, 200, 200), 1))  # 浅灰色，线宽1，更明显
             # 绘制连接线，直接使用坐标
             painter.drawLine(int(plottable_x), int(plottable_y), int(plottable_x + plottable_width), int(plottable_y))
+            
+            # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
+            dashed_pen = QPen(QColor(200, 200, 200), 1)
+            # 设置自定义虚线模式：4像素实线，8像素空白（更稀疏的虚线）
+            dashed_pen.setDashPattern([4, 8])
+            painter.setPen(dashed_pen)
+            
+            # 绘制水平网格线（与垂直刻度标记对齐）
+            if self.main_window:
+                # 绘制水平网格线（与垂直刻度标记对齐）
+                vertical_scales = [self.main_window.scale_line, self.main_window.scale_line2, self.main_window.scale_line3]
+                for scale in vertical_scales:
+                    if hasattr(scale, 'orientation') and scale.orientation == "vertical":
+                        num_markers = scale.num_markers
+                        # 每个标记都绘制网格线
+                        for i in range(num_markers):
+                            # 计算y位置（从顶部到底部）
+                            y = plottable_y + (i / (num_markers - 1)) * plottable_height
+                            # 绘制水平网格线
+                            painter.drawLine(int(plottable_x), int(y), int(plottable_x + plottable_width), int(y))
+                
+                # 绘制垂直网格线（与水平刻度标记对齐）
+                horizontal_scale = self.main_window.scale_line4
+                if hasattr(horizontal_scale, 'orientation') and horizontal_scale.orientation == "horizontal":
+                    num_markers = horizontal_scale.num_markers
+                    # 每个标记都绘制网格线
+                    for i in range(num_markers):
+                        # 计算x位置（从左侧到右侧）
+                        x = plottable_x + (i / (num_markers - 1)) * plottable_width
+                        # 绘制垂直网格线
+                        painter.drawLine(int(x), int(plottable_y), int(x), int(plottable_y + plottable_height))
         finally:
             painter.end()
     
@@ -585,6 +620,8 @@ class DL24App(QMainWindow):
         # 1. 显示widget (Zone 1)
         self.display_widget = DisplayWidget(main_widget)
         self.display_widget.setStyleSheet("background-color: white;")
+        # 设置OverlayWidget的main_window引用
+        self.display_widget.overlay.set_main_window(self)
         
         # 2. 版本号标签
         self.revision_label = QLabel(f"Revision: {REVISION}")
