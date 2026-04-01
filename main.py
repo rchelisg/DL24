@@ -640,7 +640,7 @@ class DL24App(QMainWindow):
         # 创建Zone3的布局为垂直布局
         self.zone3_layout = QVBoxLayout(self.zone3_widget)
         # 设置布局边距
-        self.zone3_layout.setContentsMargins(0, 20, 0, 0)  # 顶部边距20px
+        self.zone3_layout.setContentsMargins(0, 20, 0, 20)  # 顶部和底部边距都是 20px
         # 设置垂直间距为0
         self.zone3_layout.setSpacing(0)
         # 设置布局对齐方式为顶部
@@ -752,7 +752,7 @@ class DL24App(QMainWindow):
         # 创建Zone4的布局为垂直布局
         self.zone4_layout = QVBoxLayout(self.zone4_widget)
         # 设置布局边距
-        self.zone4_layout.setContentsMargins(0, 20, 0, 0)  # 顶部边距20px
+        self.zone4_layout.setContentsMargins(0, 20, 0, 20)  # 顶部和底部边距都是 20px
         # 设置垂直间距为0
         self.zone4_layout.setSpacing(0)
         # 设置布局对齐方式为顶部
@@ -1145,7 +1145,9 @@ class DL24App(QMainWindow):
             zone3_x = zone2_x
             zone3_y = top_margin + zone2_height + top_margin  # 与Zone2的间距与Zone2上方的间距相同
             zone3_width = zone2_width  # 与Zone2宽度相同
-            zone3_height = ui_height / 4  # 高度为总主层高度的1/4
+            # 精确计算 Zone3 高度以确保底部边距与顶部边距相同（20px）
+            # 确保所有绿色间距保持不变
+            zone3_height = 250  # 精确高度，确保底部边距与顶部边距匹配
             
             # 使用绝对定位设置Zone3的位置和大小
             self.zone3_widget.setGeometry(
@@ -1155,19 +1157,48 @@ class DL24App(QMainWindow):
                 int(zone3_height)
             )
             
-            # 计算Zone4的位置和大小
+            # 计算 Zone4 的位置和大小
             zone4_x = zone2_x
-            zone4_y = zone3_y + zone3_height + top_margin  # 与Zone3的间距与Zone2和Zone3之间的间距相同
-            zone4_width = zone2_width  # 与Zone2宽度相同
-            zone4_height = ui_height / 4  # 高度为总主层高度的1/4
+            zone4_y = zone3_y + zone3_height + top_margin  # 与 Zone3 的间距与 Zone2 和 Zone3 之间的间距相同
+            zone4_width = zone2_width  # 与 Zone2 宽度相同
             
-            # 使用绝对定位设置Zone4的位置和大小
+            # Zone4 标题顶部到 Zone4 顶部的间距（即 zone4_layout 的顶部边距）
+            zone4_title_spacing = 20  # setContentsMargins 中设置的顶部边距
+            
+            # 计算字体和高度
+            title_font_metrics = QFontMetrics(self.zone4_title.font())
+            title_height = title_font_metrics.height()
+            
+            # 计算空行高度（与标题字体相同）
+            line_height = title_height
+            
+            port_font_metrics = QFontMetrics(self.port_combo.font())
+            port_label_height = port_font_metrics.height()
+            port_combo_height = 30  # pull-down menu 高度
+            button_height = 45  # refresh_btn 和 connect_btn 高度
+            spacing_height = 10  # 各元素之间的间距
+            
+            # 计算 Zone4 的高度：顶部边距 + 标题 + 空行 + port_widget 高度 + 底部边距
+            # port_widget 高度 = max(port_combo_height, button_height)  # 取较大值
+            port_widget_height = max(port_combo_height, button_height)  # 下拉菜单和按钮的最大高度
+            zone4_height = zone4_title_spacing + title_height + line_height + port_widget_height + zone4_title_spacing  # 顶部边距 + 标题 + 空行 + 内容高度 + 底部边距
+            
+            # 使用绝对定位设置 Zone4 的位置和大小
             self.zone4_widget.setGeometry(
                 int(zone4_x),
                 int(zone4_y),
                 int(zone4_width),
                 int(zone4_height)
             )
+            
+            # 计算并显示 Zone4 的间距
+            # Zone4 结构：顶部边距 (20px) + title + 空行 (line_height) + port_widget(包含 port_label + spacing + combo + spacing + buttons) + 底部边距 (20px)
+            # port_widget 底部到 Zone4 底部的间距应该等于 zone4_title_spacing (20px)
+            # port_widget 底部位置 = zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height
+            # port_widget 底部到 Zone4 底部 = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
+            port_widget_bottom_to_zone4_bottom = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
+            
+
             
             # 更新标签文本和字体
             self.zone2_line1.setText('<span style="color: blue;">&nbsp;000.00V</span><span style="color: red;">&nbsp;000.00A</span>')
