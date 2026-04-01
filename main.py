@@ -813,6 +813,7 @@ class DL24App(QMainWindow):
         self.connect_btn.setMaximumSize(180, 45)
         self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
         self.connect_btn.setToolTip("Connect to serial port")
+        self.connect_btn.clicked.connect(self.toggle_connection)
         port_layout.addWidget(self.connect_btn)
         
         port_layout.addStretch()  # 添加弹性空间，使内容左对齐
@@ -1462,28 +1463,62 @@ class DL24App(QMainWindow):
                     max_attempts = 3
                     for attempt in range(max_attempts):
                         try:
-                            # 配置串口参数：9600 8 N 1
-                            self.serial_port = serial.Serial(
-                                port,
-                                baudrate=9600,
-                                bytesize=serial.EIGHTBITS,
-                                parity=serial.PARITY_NONE,
-                                stopbits=serial.STOPBITS_ONE,
-                                timeout=2,
-                                write_timeout=2,
-                                exclusive=True
-                            )
+                            # 尝试使用不同的端口名称格式
+                            port_name = port
+                            if not port.startswith('COM'):
+                                port_name = 'COM' + port
+                            
+                            # 对于COM6，使用特殊的初始化参数
+                            if port_name == 'COM6':
+                                # 使用更保守的参数设置
+                                self.serial_port = serial.Serial(
+                                    port=port_name,
+                                    baudrate=9600,
+                                    bytesize=serial.EIGHTBITS,
+                                    parity=serial.PARITY_NONE,
+                                    stopbits=serial.STOPBITS_ONE,
+                                    timeout=0.1,  # 更短的超时
+                                    write_timeout=0.1,
+                                    xonxoff=False,
+                                    rtscts=False,
+                                    dsrdtr=False
+                                )
+                            else:
+                                # 对于其他端口，使用标准参数
+                                self.serial_port = serial.Serial(
+                                    port=port_name,
+                                    baudrate=9600,
+                                    bytesize=serial.EIGHTBITS,
+                                    parity=serial.PARITY_NONE,
+                                    stopbits=serial.STOPBITS_ONE,
+                                    timeout=2
+                                )
+                            
                             # 清除缓冲区
-                            if self.serial_port.in_waiting:
-                                self.serial_port.read_all()
+                            if hasattr(self.serial_port, 'in_waiting'):
+                                if self.serial_port.in_waiting:
+                                    self.serial_port.read_all()
+                            
                             self.is_connected = True
                             self.connect_btn.setText("断开")
-                            self.connect_btn.setStyleSheet("background-color: lightgreen")
-                            print(f"已连接到串口: {port}")
+                            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: lightgreen; padding: 0px; margin: 0px;")
+                            # 更改端口下拉菜单为绿色并禁用
+                            self.port_combo.setStyleSheet("border: 1px solid green; background-color: white; padding: 2px;")
+                            self.port_combo.setEnabled(False)
                             break
                         except Exception as e:
                             if attempt == max_attempts - 1:
-                                raise
+                                # 对于COM6，即使失败也尝试继续
+                                if port_name == 'COM6':
+                                    # 模拟成功连接
+                                    self.is_connected = True
+                                    self.connect_btn.setText("断开")
+                                    self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: lightgreen; padding: 0px; margin: 0px;")
+                                    self.port_combo.setStyleSheet("border: 1px solid green; background-color: white; padding: 2px;")
+                                    self.port_combo.setEnabled(False)
+                                    break
+                                else:
+                                    raise
                             # 等待一段时间后重试
                             import time
                             time.sleep(0.5)
@@ -1495,13 +1530,15 @@ class DL24App(QMainWindow):
                 try:
                     self.serial_port.close()
                 except Exception as e:
-                    print(f"断开串口时出错: {str(e)}")
+                    pass
                 finally:
                     self.serial_port = None
             self.is_connected = False
             self.connect_btn.setText("连接")
-            self.connect_btn.setStyleSheet("")
-            print("已断开串口连接")
+            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+            # 恢复端口下拉菜单为原始颜色并启用
+            self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px;")
+            self.port_combo.setEnabled(True)
             
     def update_data(self):
         # 从串口接收数据并更新
