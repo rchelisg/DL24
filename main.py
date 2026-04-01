@@ -803,6 +803,18 @@ class DL24App(QMainWindow):
         self.refresh_btn.setToolTip("Refresh serial ports")
         port_layout.addWidget(self.refresh_btn)
         
+        # 添加三个空格
+        space_spacer2 = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        port_layout.addItem(space_spacer2)
+        
+        # 连接按钮
+        self.connect_btn = QPushButton("连接")
+        self.connect_btn.setMinimumSize(180, 45)
+        self.connect_btn.setMaximumSize(180, 45)
+        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+        self.connect_btn.setToolTip("Connect to serial port")
+        port_layout.addWidget(self.connect_btn)
+        
         port_layout.addStretch()  # 添加弹性空间，使内容左对齐
         self.zone4_layout.addWidget(port_widget)
         
