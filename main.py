@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QGroupBox, QCheckBox,
     QDoubleSpinBox, QGridLayout, QMessageBox, QSizePolicy, QInputDialog,
-    QDialog, QFormLayout, QDialogButtonBox, QSpacerItem,
+    QDialog, QFormLayout, QDialogButtonBox, QSpacerItem, QLineEdit,
     QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene
 )
 from PyQt5.QtCore import Qt, QTimer, QRect
@@ -17,7 +17,7 @@ import serial
 import serial.tools.list_ports
 
 # 版本号管理
-VERSION = "0.00.80"
+VERSION = "0.0.81"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # 计算代码哈希的函数
@@ -54,10 +54,10 @@ def get_revision():
                     new_revision = f"{major}.{minor}.{patch:02d}"
             else:
                 # 文件格式不正确，使用默认版本号
-                new_revision = "1.0.00"
+                new_revision = "0.0.00"
     except FileNotFoundError:
         # 文件不存在，使用默认版本号
-        new_revision = "1.0.00"
+        new_revision = "0.0.00"
 
     # 保存新的版本号和哈希值
     with open(revision_file, 'w') as f:
@@ -590,6 +590,8 @@ class DL24App(QMainWindow):
             'P': {'min': 0, 'max': 50},
             'time': {'min': 0, 'max': 300}
         }
+        self.Vcutoff = 0.00  # 初始化截止电压变量
+        self.Iload = 0.00  # 初始化负载电流变量
         
         # 设置窗口大小为屏幕的80%
         screen = QApplication.desktop().screenGeometry()
@@ -628,9 +630,12 @@ class DL24App(QMainWindow):
         # 设置初始字体
         font = QFont("Courier New", 14, QFont.Light)  # 使用更薄的等宽字体
         
-        # 3. 显示widget (Zone 3)
+        # 3. 显示 widget (Zone 3)
         self.zone3_widget = QWidget(main_widget)
-        self.zone3_widget.setStyleSheet("background-color: white; border: 1px solid green;")
+        self.zone3_widget.setStyleSheet("background-color: white;")
+        # 设置 Zone3 的字体大小为原来的 1.875 倍 (1.5 * 1.25)
+        zone3_font = QFont("Courier New", 26, QFont.Light)
+        self.zone3_widget.setFont(zone3_font)
         
         # 创建Zone3的布局为垂直布局
         self.zone3_layout = QVBoxLayout(self.zone3_widget)
@@ -641,16 +646,108 @@ class DL24App(QMainWindow):
         # 设置布局对齐方式为顶部
         self.zone3_layout.setAlignment(Qt.AlignTop)
         
-        # 添加Zone3标题
+        # 添加 Zone3 标题
         self.zone3_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;参数设置</span>')
         self.zone3_title.setAlignment(Qt.AlignLeft)  # 左对齐
-        self.zone3_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone3_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用 Expanding 以填充水平空间
         self.zone3_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
         self.zone3_layout.addWidget(self.zone3_title)
         
-        # 4. 显示widget (Zone 4)
+        # 添加一行间距
+        font_metrics = QFontMetrics(self.zone3_title.font())
+        line_height = font_metrics.height()
+        zone3_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone3_layout.addItem(zone3_spacer)
+        
+        # 添加 Mode 标签和下拉菜单
+        mode_widget = QWidget()
+        mode_layout = QHBoxLayout(mode_widget)
+        mode_layout.setContentsMargins(0, 0, 0, 0)
+        mode_layout.setSpacing(5)
+        
+        # Mode 标签
+        mode_label = QLabel("  Mode  ")
+        mode_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        mode_layout.addWidget(mode_label)
+        
+        # 下拉菜单
+        self.mode_combo = QComboBox()
+        self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
+        self.mode_combo.addItem("CC - Constant Current", 0)
+        self.mode_combo.addItem("CV - Constant Voltage", 1)
+        self.mode_combo.addItem("CP - Constant Wattage", 2)
+        self.mode_combo.setCurrentIndex(0)  # 默认值为 0
+        self.mode_combo.currentIndexChanged.connect(self.on_mode_changed)
+        mode_layout.addWidget(self.mode_combo)
+        
+        mode_layout.addStretch()  # 添加弹性空间，使内容左对齐
+        self.zone3_layout.addWidget(mode_widget)
+        
+        # 添加一行间距
+        font_metrics = QFontMetrics(self.mode_combo.font())
+        line_height = int(font_metrics.height() * 0.5)
+        mode_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone3_layout.addItem(mode_spacer)
+        
+        # 添加 Cutoff Voltage 标签和输入框
+        cutoff_widget = QWidget()
+        cutoff_layout = QHBoxLayout(cutoff_widget)
+        cutoff_layout.setContentsMargins(0, 0, 0, 0)
+        cutoff_layout.setSpacing(5)
+        
+        # Cutoff Voltage 标签
+        cutoff_label = QLabel("  Cut off Voltage ")
+        cutoff_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        cutoff_label.setMinimumWidth(100)
+        cutoff_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        cutoff_layout.addWidget(cutoff_label)
+        
+        # 输入框
+        self.cutoff_voltage_entry = QLineEdit()
+        self.cutoff_voltage_entry.setText("0.00")
+        self.cutoff_voltage_entry.setPlaceholderText("0.00")
+        self.cutoff_voltage_entry.setFixedWidth(120)
+        self.cutoff_voltage_entry.setAlignment(Qt.AlignCenter)
+        self.cutoff_voltage_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
+        self.cutoff_voltage_entry.textChanged.connect(self.on_cutoff_voltage_changed)
+        cutoff_layout.addWidget(self.cutoff_voltage_entry)
+        
+        cutoff_layout.addStretch()  # 添加弹性空间，使内容左对齐
+        self.zone3_layout.addWidget(cutoff_widget)
+        
+        # 添加一行间距
+        cutoff_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone3_layout.addItem(cutoff_spacer)
+        
+        # 添加 Load Current 标签和输入框
+        load_widget = QWidget()
+        load_layout = QHBoxLayout(load_widget)
+        load_layout.setContentsMargins(0, 0, 0, 0)
+        load_layout.setSpacing(5)
+        
+        # Load Current 标签
+        load_label = QLabel("  Load Current    ")
+        load_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        load_label.setMinimumWidth(100)
+        load_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        load_layout.addWidget(load_label)
+        
+        # 输入框
+        self.load_current_entry = QLineEdit()
+        self.load_current_entry.setText("0.00")
+        self.load_current_entry.setPlaceholderText("0.00")
+        self.load_current_entry.setFixedWidth(120)
+        self.load_current_entry.setAlignment(Qt.AlignCenter)
+        self.load_current_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
+        self.load_current_entry.textChanged.connect(self.on_load_current_changed)
+        load_layout.addWidget(self.load_current_entry)
+        
+        load_layout.addStretch()  # 添加弹性空间，使内容左对齐
+        self.zone3_layout.addWidget(load_widget)
+        
+        # 4. 显示 widget (Zone 4)
         self.zone4_widget = QWidget(main_widget)
-        self.zone4_widget.setStyleSheet("background-color: white; border: 1px solid blue;")
+        self.zone4_widget.setStyleSheet("background-color: white;")
         
         # 创建Zone4的布局为垂直布局
         self.zone4_layout = QVBoxLayout(self.zone4_widget)
@@ -661,12 +758,53 @@ class DL24App(QMainWindow):
         # 设置布局对齐方式为顶部
         self.zone4_layout.setAlignment(Qt.AlignTop)
         
-        # 添加Zone4标题
+        # 添加 Zone4 标题
         self.zone4_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;通信设置</span>')
         self.zone4_title.setAlignment(Qt.AlignLeft)  # 左对齐
-        self.zone4_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
+        self.zone4_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用 Expanding 以填充水平空间
         self.zone4_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
         self.zone4_layout.addWidget(self.zone4_title)
+        
+        # 添加一行间距
+        font_metrics = QFontMetrics(self.zone4_title.font())
+        line_height = font_metrics.height()
+        zone4_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.zone4_layout.addItem(zone4_spacer)
+        
+        # 添加 Port 标签和下拉菜单
+        port_widget = QWidget()
+        port_layout = QHBoxLayout(port_widget)
+        port_layout.setContentsMargins(0, 0, 0, 0)
+        port_layout.setSpacing(10)
+        
+        # Port 标签
+        port_label = QLabel("  Port  ")
+        port_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        port_layout.addWidget(port_label)
+        
+        # 下拉菜单
+        self.port_combo = QComboBox()
+        self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px;")
+        self.refresh_serial_ports()
+        port_layout.addWidget(self.port_combo)
+        
+        # 添加三个空格
+        font_metrics = QFontMetrics(self.port_combo.font())
+        space_width = font_metrics.width(" ") * 3
+        space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        port_layout.addItem(space_spacer)
+        
+        # 刷新按钮
+        self.refresh_btn = QPushButton("⟳")
+        self.refresh_btn.setMinimumSize(48, 45)
+        self.refresh_btn.setMaximumSize(48, 45)
+        self.refresh_btn.setStyleSheet("border: 1px solid gray; background-color: #0078D7; font-size: 29px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
+        self.refresh_btn.clicked.connect(self.refresh_serial_ports)
+        self.refresh_btn.setToolTip("Refresh serial ports")
+        port_layout.addWidget(self.refresh_btn)
+        
+        port_layout.addStretch()  # 添加弹性空间，使内容左对齐
+        self.zone4_layout.addWidget(port_widget)
         
         # 添加Zone2标题
         self.zone2_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;实时数据</span>')
@@ -675,8 +813,7 @@ class DL24App(QMainWindow):
         self.zone2_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
         self.zone2_layout.addWidget(self.zone2_title)
         
-        # 添加空行（使用QSpacerItem创建垂直空间）
-        from PyQt5.QtWidgets import QSpacerItem
+        # 添加空行（使用 QSpacerItem 创建垂直空间）
         font_metrics = QFontMetrics(self.zone2_title.font())
         line_height = font_metrics.height()
         spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -789,6 +926,47 @@ class DL24App(QMainWindow):
         self.on_resize(None)
         
         # 暂时移除轴的双击事件，因为我们已经重新设计了曲线显示区域
+        
+    def on_mode_changed(self, index):
+        # 当下拉菜单选择改变时，更新 mode 变量
+        self.mode = self.mode_combo.currentData()
+        
+    def on_cutoff_voltage_changed(self, text):
+        # 当截止电压输入框改变时，更新 Vcutoff 变量
+        try:
+            value = float(text)
+            if 0 <= value <= 30:
+                self.Vcutoff = value
+                # 保留两位小数
+                self.cutoff_voltage_entry.setText(f"{value:.2f}")
+            else:
+                # 超出范围，恢复为之前的值
+                self.cutoff_voltage_entry.setText(f"{self.Vcutoff:.2f}")
+        except ValueError:
+            # 无效输入，保持当前值
+            pass
+        
+    def on_load_current_changed(self, text):
+        # 当负载电流输入框改变时，更新 Iload 变量
+        try:
+            value = float(text)
+            if 0 <= value <= 50:
+                self.Iload = value
+                # 保留两位小数
+                self.load_current_entry.setText(f"{value:.2f}")
+            else:
+                # 超出范围，恢复为之前值
+                self.load_current_entry.setText(f"{self.Iload:.2f}")
+        except ValueError:
+            # 无效输入，保持当前值
+            pass
+        
+    def refresh_serial_ports(self):
+        # 刷新串口列表
+        self.port_combo.clear()
+        ports = list(serial.tools.list_ports.comports())
+        for port in ports:
+            self.port_combo.addItem(port.device, port.device)
         
     def set_control_font_size(self, font_size):
         # 设置所有控件的字体大小
