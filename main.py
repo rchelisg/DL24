@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (
     QLabel, QComboBox, QPushButton, QGroupBox, QCheckBox,
     QDoubleSpinBox, QGridLayout, QMessageBox, QSizePolicy, QInputDialog,
     QDialog, QFormLayout, QDialogButtonBox, QSpacerItem, QLineEdit,
-    QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene
+    QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene,
+    QTextEdit
 )
 from PyQt5.QtCore import Qt, QTimer, QRect
 from PyQt5.QtGui import QFont, QFontMetrics, QPen, QColor, QPainter
@@ -747,6 +748,14 @@ class DL24App(QMainWindow):
         
         # 4. 显示 widget (Zone 4)
         self.zone4_widget = QWidget(main_widget)
+        
+        # 5. 调试窗口
+        self.debug_window = QTextEdit(main_widget)
+        self.debug_window.setStyleSheet("background-color: lightgrey; color: black; font-family: Courier New; font-size: 24px;")
+        self.debug_window.setReadOnly(True)
+        self.debug_window.setLineWrapMode(QTextEdit.NoWrap)
+        # 添加测试消息
+        self.add_debug_message("Debug window initialized")
         self.zone4_widget.setStyleSheet("background-color: white;")
         
         # 创建Zone4的布局为垂直布局
@@ -815,6 +824,37 @@ class DL24App(QMainWindow):
         self.connect_btn.setToolTip("Connect to serial port")
         self.connect_btn.clicked.connect(self.toggle_connection)
         port_layout.addWidget(self.connect_btn)
+        
+        # 添加三个空格
+        space_spacer3 = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        port_layout.addItem(space_spacer3)
+        
+        # 创建垂直布局用于放置TxStatus和RxStatus图标
+        status_widget = QWidget()
+        status_layout = QVBoxLayout(status_widget)
+        status_layout.setSpacing(5)
+        status_layout.setContentsMargins(5, 0, 0, 0)  # 添加5px左边距，将图标向内移动
+        
+        # TxStatus图标
+        self.tx_status_icon = QLabel("●")
+        self.tx_status_icon.setFont(QFont("Arial", 16))
+        self.tx_status_icon.setStyleSheet("color: darkgrey;")
+        self.tx_status_icon.setAlignment(Qt.AlignCenter)
+        status_layout.addWidget(self.tx_status_icon)
+        
+        # RxStatus图标
+        self.rx_status_icon = QLabel("●")
+        self.rx_status_icon.setFont(QFont("Arial", 16))
+        self.rx_status_icon.setStyleSheet("color: darkgrey;")
+        self.rx_status_icon.setAlignment(Qt.AlignCenter)
+        status_layout.addWidget(self.rx_status_icon)
+        
+        # 设置status_widget的大小
+        status_widget.setMinimumSize(30, 45)
+        status_widget.setMaximumSize(30, 45)
+        
+        # 将status_widget添加到主布局
+        port_layout.addWidget(status_widget)
         
         port_layout.addStretch()  # 添加弹性空间，使内容左对齐
         self.zone4_layout.addWidget(port_widget)
@@ -1199,6 +1239,18 @@ class DL24App(QMainWindow):
             # port_widget 底部到 Zone4 底部 = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
             port_widget_bottom_to_zone4_bottom = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
             
+            # 计算调试窗口的位置和大小
+            # 调试窗口高度（3行文本的高度）
+            debug_window_height = 120
+            # 定位到最底部，在所有区域下方
+            debug_window_y = ui_height - debug_window_height
+            self.debug_window.setGeometry(
+                int(left_margin),
+                int(debug_window_y),
+                int(ui_width - left_margin - right_margin),
+                int(debug_window_height)
+            )
+            
 
             
             # 更新标签文本和字体
@@ -1467,32 +1519,17 @@ class DL24App(QMainWindow):
                             port_name = port
                             if not port.startswith('COM'):
                                 port_name = 'COM' + port
+                            print(f"Attempt {attempt+1} to connect to {port_name}")
                             
-                            # 对于COM6，使用特殊的初始化参数
-                            if port_name == 'COM6':
-                                # 使用更保守的参数设置
-                                self.serial_port = serial.Serial(
-                                    port=port_name,
-                                    baudrate=9600,
-                                    bytesize=serial.EIGHTBITS,
-                                    parity=serial.PARITY_NONE,
-                                    stopbits=serial.STOPBITS_ONE,
-                                    timeout=0.1,  # 更短的超时
-                                    write_timeout=0.1,
-                                    xonxoff=False,
-                                    rtscts=False,
-                                    dsrdtr=False
-                                )
-                            else:
-                                # 对于其他端口，使用标准参数
-                                self.serial_port = serial.Serial(
-                                    port=port_name,
-                                    baudrate=9600,
-                                    bytesize=serial.EIGHTBITS,
-                                    parity=serial.PARITY_NONE,
-                                    stopbits=serial.STOPBITS_ONE,
-                                    timeout=2
-                                )
+                            # 对于所有端口，使用标准参数
+                            self.serial_port = serial.Serial(
+                                port=port_name,
+                                baudrate=9600,
+                                bytesize=serial.EIGHTBITS,
+                                parity=serial.PARITY_NONE,
+                                stopbits=serial.STOPBITS_ONE,
+                                timeout=2
+                            )
                             
                             # 清除缓冲区
                             if hasattr(self.serial_port, 'in_waiting'):
@@ -1508,17 +1545,7 @@ class DL24App(QMainWindow):
                             break
                         except Exception as e:
                             if attempt == max_attempts - 1:
-                                # 对于COM6，即使失败也尝试继续
-                                if port_name == 'COM6':
-                                    # 模拟成功连接
-                                    self.is_connected = True
-                                    self.connect_btn.setText("断开")
-                                    self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: lightgreen; padding: 0px; margin: 0px;")
-                                    self.port_combo.setStyleSheet("border: 1px solid green; background-color: white; padding: 2px;")
-                                    self.port_combo.setEnabled(False)
-                                    break
-                                else:
-                                    raise
+                                raise
                             # 等待一段时间后重试
                             import time
                             time.sleep(0.5)
@@ -1561,6 +1588,78 @@ class DL24App(QMainWindow):
         # 检查时间是否超过最大值
         if current_time > self.time_max:
             self.time_max += 60  # 自动增加1分钟
+        
+        # 读取串口数据并显示在调试窗口
+        if self.is_connected and self.serial_port:
+            try:
+                # 读取可用数据
+                if hasattr(self.serial_port, 'in_waiting'):
+                    if self.serial_port.in_waiting > 0:
+                        # 正在接收数据
+                        self.update_rx_status(True)
+                        data = self.serial_port.read(self.serial_port.in_waiting)
+                        # 转换为十六进制格式
+                        hex_data = ' '.join([f'{b:02x}' for b in data])
+                        # 显示在调试窗口
+                        self.add_debug_message(hex_data)
+                        # 短暂延迟后恢复状态
+                        QTimer.singleShot(500, lambda: self.update_rx_status(False))
+            except Exception as e:
+                pass
+    
+    def send_data(self, data):
+        # 发送数据到串口
+        if self.is_connected and self.serial_port:
+            try:
+                # 正在发送数据
+                self.update_tx_status(True)
+                self.serial_port.write(data)
+                # 短暂延迟后恢复状态
+                QTimer.singleShot(500, lambda: self.update_tx_status(False))
+                return True
+            except Exception as e:
+                print(f"发送数据失败: {e}")
+                self.update_tx_status(False)
+                return False
+        return False
+    
+    def update_tx_status(self, transmitting):
+        # 更新TxStatus图标颜色
+        if hasattr(self, 'tx_status_icon'):
+            if transmitting:
+                self.tx_status_icon.setStyleSheet("color: green;")
+            else:
+                self.tx_status_icon.setStyleSheet("color: darkgrey;")
+    
+    def update_rx_status(self, receiving):
+        # 更新RxStatus图标颜色
+        if hasattr(self, 'rx_status_icon'):
+            if receiving:
+                self.rx_status_icon.setStyleSheet("color: green;")
+            else:
+                self.rx_status_icon.setStyleSheet("color: darkgrey;")
+    
+    def add_debug_message(self, message):
+        # 添加调试信息到调试窗口
+        if hasattr(self, 'debug_window'):
+            # 获取当前时间的分钟和秒
+            import datetime
+            now = datetime.datetime.now()
+            timestamp = f"{now.minute:02d}.{now.second:02d}"
+            # 添加时间戳到消息
+            message_with_timestamp = f"{timestamp}  {message}"
+            # 获取当前内容
+            current_text = self.debug_window.toPlainText()
+            # 拆分为行
+            lines = current_text.strip().split('\n')
+            # 保留最后2行，加上新消息（总共3行）
+            lines = lines[-2:] + [message_with_timestamp]
+            # 重新组合
+            new_text = '\n'.join(lines)
+            # 更新调试窗口
+            self.debug_window.setPlainText(new_text)
+            # 滚动到底部
+            self.debug_window.verticalScrollBar().setValue(self.debug_window.verticalScrollBar().maximum())
             
     def update_vcut_curve(self, vcut_value):
         # 更新Vcut曲线
