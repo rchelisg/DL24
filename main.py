@@ -592,7 +592,7 @@ class DL24App(QMainWindow):
             'time': {'min': 0, 'max': 300}
         }
         self.Vcutoff = 0.00  # 初始化截止电压变量
-        self.Iload = 0.00  # 初始化负载电流变量
+        self.Iset = 0.00  # 初始化负载电流变量
         
         # 设置窗口大小为屏幕的80%
         screen = QApplication.desktop().screenGeometry()
@@ -674,10 +674,13 @@ class DL24App(QMainWindow):
         # 下拉菜单
         self.mode_combo = QComboBox()
         self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
-        self.mode_combo.addItem("CC - Constant Current", 0)
-        self.mode_combo.addItem("CV - Constant Voltage", 1)
-        self.mode_combo.addItem("CP - Constant Wattage", 2)
-        self.mode_combo.setCurrentIndex(0)  # 默认值为 0
+        self.mode_combo.addItem("CC Constant current", 1)
+        self.mode_combo.addItem("CV Constant voltage", 2)
+        self.mode_combo.addItem("CP Constant power", 3)
+        self.mode_combo.addItem("CR Constant resistance", 4)
+        self.mode_combo.setCurrentIndex(0)  # 默认值为 1
+        # 禁用 CR 模式选项
+        self.mode_combo.model().item(3).setEnabled(False)
         self.mode_combo.currentIndexChanged.connect(self.on_mode_changed)
         mode_layout.addWidget(self.mode_combo)
         
@@ -1000,16 +1003,16 @@ class DL24App(QMainWindow):
             pass
         
     def on_load_current_changed(self, text):
-        # 当负载电流输入框改变时，更新 Iload 变量
+        # 当负载电流输入框改变时，更新 Iset 变量
         try:
             value = float(text)
             if 0 <= value <= 50:
-                self.Iload = value
+                self.Iset = value
                 # 保留两位小数
                 self.load_current_entry.setText(f"{value:.2f}")
             else:
                 # 超出范围，恢复为之前值
-                self.load_current_entry.setText(f"{self.Iload:.2f}")
+                self.load_current_entry.setText(f"{self.Iset:.2f}")
         except ValueError:
             # 无效输入，保持当前值
             pass
