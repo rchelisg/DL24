@@ -574,6 +574,7 @@ class DL24App(QMainWindow):
         self.serial_port = None
         self.mode = 0  # 0: CC, 1: CV, 2: CP
         self.is_parameter_editable = False
+        self.serial_buffer = bytearray()  # 用于存储串口接收到的数据
         
     def init_ui(self):
         # 初始化数据结构（在方法开始时就初始化，确保在任何使用之前都已存在）
@@ -591,7 +592,7 @@ class DL24App(QMainWindow):
             'P': {'min': 0, 'max': 50},
             'time': {'min': 0, 'max': 300}
         }
-        self.Vcutoff = 0.00  # 初始化截止电压变量
+        self.Vset = 0.00  # 初始化截止电压变量
         self.Iset = 0.00  # 初始化负载电流变量
         
         # 设置窗口大小为屏幕的80%
@@ -666,14 +667,9 @@ class DL24App(QMainWindow):
         mode_layout.setContentsMargins(0, 0, 0, 0)
         mode_layout.setSpacing(5)
         
-        # Mode 标签
-        mode_label = QLabel("  Mode  ")
-        mode_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        mode_layout.addWidget(mode_label)
-        
         # 下拉菜单
         self.mode_combo = QComboBox()
-        self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
+        self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px; font-family: 'Microsoft YaHei'; color: black;")
         self.mode_combo.addItem("CC Constant current", 1)
         self.mode_combo.addItem("CV Constant voltage", 2)
         self.mode_combo.addItem("CP Constant power", 3)
@@ -682,6 +678,14 @@ class DL24App(QMainWindow):
         # 禁用 CR 模式选项
         self.mode_combo.model().item(3).setEnabled(False)
         self.mode_combo.currentIndexChanged.connect(self.on_mode_changed)
+        
+        # 放电模式 标签
+        mode_label = QLabel("  放电模式  ")
+        mode_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        # 使用与Zone3标题相同的字体
+        mode_label.setFont(self.zone3_title.font())
+        mode_layout.addWidget(mode_label)
+        
         mode_layout.addWidget(self.mode_combo)
         
         mode_layout.addStretch()  # 添加弹性空间，使内容左对齐
@@ -699,21 +703,24 @@ class DL24App(QMainWindow):
         cutoff_layout.setContentsMargins(0, 0, 0, 0)
         cutoff_layout.setSpacing(5)
         
-        # Cutoff Voltage 标签
-        cutoff_label = QLabel("  Cut off Voltage ")
-        cutoff_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        cutoff_label.setMinimumWidth(100)
-        cutoff_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        cutoff_layout.addWidget(cutoff_label)
-        
         # 输入框
         self.cutoff_voltage_entry = QLineEdit()
         self.cutoff_voltage_entry.setText("0.00")
         self.cutoff_voltage_entry.setPlaceholderText("0.00")
         self.cutoff_voltage_entry.setFixedWidth(120)
         self.cutoff_voltage_entry.setAlignment(Qt.AlignCenter)
-        self.cutoff_voltage_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
+        self.cutoff_voltage_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px; font-family: 'Microsoft YaHei'; color: black;")
         self.cutoff_voltage_entry.textChanged.connect(self.on_cutoff_voltage_changed)
+        
+        # 截止电压 标签
+        cutoff_label = QLabel("  截止电压  ")
+        cutoff_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        cutoff_label.setMinimumWidth(100)
+        cutoff_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # 使用与Zone3标题相同的字体
+        cutoff_label.setFont(self.zone3_title.font())
+        cutoff_layout.addWidget(cutoff_label)
+        
         cutoff_layout.addWidget(self.cutoff_voltage_entry)
         
         cutoff_layout.addStretch()  # 添加弹性空间，使内容左对齐
@@ -729,21 +736,24 @@ class DL24App(QMainWindow):
         load_layout.setContentsMargins(0, 0, 0, 0)
         load_layout.setSpacing(5)
         
-        # Load Current 标签
-        load_label = QLabel("  Load Current    ")
-        load_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        load_label.setMinimumWidth(100)
-        load_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        load_layout.addWidget(load_label)
-        
         # 输入框
         self.load_current_entry = QLineEdit()
         self.load_current_entry.setText("0.00")
         self.load_current_entry.setPlaceholderText("0.00")
         self.load_current_entry.setFixedWidth(120)
         self.load_current_entry.setAlignment(Qt.AlignCenter)
-        self.load_current_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px;")
+        self.load_current_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px; font-family: 'Microsoft YaHei'; color: black;")
         self.load_current_entry.textChanged.connect(self.on_load_current_changed)
+        
+        # 负载电流 标签
+        load_label = QLabel("  负载电流  ")
+        load_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        load_label.setMinimumWidth(100)
+        load_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # 使用与Zone3标题相同的字体
+        load_label.setFont(self.zone3_title.font())
+        load_layout.addWidget(load_label)
+        
         load_layout.addWidget(self.load_current_entry)
         
         load_layout.addStretch()  # 添加弹性空间，使内容左对齐
@@ -789,8 +799,8 @@ class DL24App(QMainWindow):
         port_layout.setContentsMargins(0, 0, 0, 0)
         port_layout.setSpacing(10)
         
-        # Port 标签
-        port_label = QLabel("  Port  ")
+        # 端口 标签
+        port_label = QLabel("  端口  ")
         port_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
         port_layout.addWidget(port_label)
         
@@ -824,7 +834,7 @@ class DL24App(QMainWindow):
         self.connect_btn.setMinimumSize(180, 45)
         self.connect_btn.setMaximumSize(180, 45)
         self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        self.connect_btn.setToolTip("Connect to serial port")
+        self.connect_btn.setToolTip("连接到串口")
         self.connect_btn.clicked.connect(self.toggle_connection)
         port_layout.addWidget(self.connect_btn)
         
@@ -988,16 +998,16 @@ class DL24App(QMainWindow):
         self.mode = self.mode_combo.currentData()
         
     def on_cutoff_voltage_changed(self, text):
-        # 当截止电压输入框改变时，更新 Vcutoff 变量
+        # 当截止电压输入框改变时，更新 Vset 变量
         try:
             value = float(text)
-            if 0 <= value <= 30:
-                self.Vcutoff = value
+            if 0 <= value <= 50:
+                self.Vset = value
                 # 保留两位小数
                 self.cutoff_voltage_entry.setText(f"{value:.2f}")
             else:
-                # 超出范围，恢复为之前的值
-                self.cutoff_voltage_entry.setText(f"{self.Vcutoff:.2f}")
+                # 超出范围，恢复为之前值
+                self.cutoff_voltage_entry.setText(f"{self.Vset:.2f}")
         except ValueError:
             # 无效输入，保持当前值
             pass
@@ -1550,7 +1560,7 @@ class DL24App(QMainWindow):
                                     self.serial_port.read_all()
                             
                             self.is_connected = True
-                            self.connect_btn.setText("断开")
+                            self.connect_btn.setText("断开连接")
                             self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: lightgreen; padding: 0px; margin: 0px;")
                             # 更改端口下拉菜单为绿色并禁用
                             self.port_combo.setStyleSheet("border: 1px solid green; background-color: white; padding: 2px;")
@@ -1609,16 +1619,22 @@ class DL24App(QMainWindow):
         if self.is_connected and self.serial_port:
             try:
                 # 读取可用数据
-                if hasattr(self.serial_port, 'in_waiting'):
-                    if self.serial_port.in_waiting > 0:
-                        # 正在接收数据
-                        self.update_rx_status(True)
-                        data = self.serial_port.read(self.serial_port.in_waiting)
-                        # 转换为十六进制格式
-                        hex_data = ' '.join([f'{b:02x}' for b in data])
-                        # 显示在调试窗口
-                        self.add_debug_message(hex_data)
-                        # 短暂延迟后恢复状态
+                        if hasattr(self.serial_port, 'in_waiting'):
+                            if self.serial_port.in_waiting > 0:
+                                # 正在接收数据
+                                self.update_rx_status(True)
+                                data = self.serial_port.read(self.serial_port.in_waiting)
+                                # 检查是否以 ff 55 开头
+                                if not (len(data) >= 2 and data[0] == 0xff and data[1] == 0x55):
+                                    # 转换为十六进制格式
+                                    hex_data = ' '.join([f'{b:02x}' for b in data])
+                                    # 显示在调试窗口
+                                    self.add_debug_message(hex_data)
+                                # 添加数据到缓冲区
+                                self.serial_buffer.extend(data)
+                                # 解码数据
+                                self.decode_serial_data()
+                                # 短暂延迟后恢复状态
                         QTimer.singleShot(500, lambda: self.update_rx_status(False))
             except Exception as e:
                 pass
@@ -1654,6 +1670,80 @@ class DL24App(QMainWindow):
                 self.rx_status_icon.setStyleSheet("color: green;")
             else:
                 self.rx_status_icon.setStyleSheet("color: darkgrey;")
+    
+    def decode_serial_data(self):
+        # 查找 0xFF 0x55 头
+        header_index = self.serial_buffer.find(b'\xff\x55')
+        while header_index != -1:
+            # 检查缓冲区是否有足够的数据（36字节）
+            if len(self.serial_buffer) - header_index >= 36:
+                # 提取36字节的数据帧
+                frame = self.serial_buffer[header_index:header_index+36]
+                
+                # 解码参数
+                try:
+                    # 电压 (SV) - 3字节, 除以100
+                    sv = int.from_bytes(frame[4:7], byteorder='big') / 100
+                    
+                    # 电流 (SI) - 3字节, 除以1000
+                    si = int.from_bytes(frame[7:10], byteorder='big') / 1000
+                    
+                    # 容量 (SAh) - 3字节, 除以1000
+                    sah = int.from_bytes(frame[10:13], byteorder='big') / 1000
+                    
+                    # 能量 (SWh) - 3字节, 除以100
+                    swh = int.from_bytes(frame[13:16], byteorder='big') / 100
+                    
+                    # 时间/持续时间 (SH) - 2字节, 直接使用
+                    sh = int.from_bytes(frame[18:20], byteorder='big')
+                    
+                    # 定时器分钟 (SM) - 1字节, 直接使用
+                    sm = frame[20]
+                    
+                    # 定时器秒 (SS) - 1字节, 直接使用
+                    ss = frame[21]
+                    
+                    # 限制电压 (SVcutoff) - 2字节, 除以10
+                    svcutoff = int.from_bytes(frame[22:24], byteorder='big') / 10
+                    
+                    # 限制电流 (SIset) - 2字节, 除以100
+                    iset = int.from_bytes(frame[24:26], byteorder='big') / 100
+                    
+                    # 限制功率 (SWset) - 1字节, 直接使用
+                    swset = frame[26]
+                    
+                    # 模式 (Smode) - 假设在某个位置，需要根据实际帧定义调整
+                    # 这里假设在第27字节
+                    smode = frame[27] if len(frame) > 27 else 0
+                    
+                    # 状态 (Sstate) - 假设在某个位置，需要根据实际帧定义调整
+                    # 这里假设在第28字节
+                    sstate = frame[28] if len(frame) > 28 else 0
+                    
+                    # 输出解码后的数据到控制台
+                    print(f"SV: {sv} V")
+                    print(f"SI: {si} A")
+                    print(f"SAh: {sah} Ah")
+                    print(f"SWh: {swh} Wh")
+                    print(f"SH: {sh} s")
+                    print(f"SM: {sm} min")
+                    print(f"SS: {ss} sec")
+                    print(f"SVcutoff: {svcutoff} V")
+                    print(f"SIset: {iset} A")
+                    print(f"SWset: {swset} W")
+                    print(f"Smode: {smode}")
+                    print(f"Sstate: {sstate}")
+                    print("------------------------")
+                except Exception as e:
+                    print(f"解码错误: {str(e)}")
+                
+                # 移除已处理的数据
+                self.serial_buffer = self.serial_buffer[header_index+36:]
+                header_index = self.serial_buffer.find(b'\xff\x55')
+            else:
+                # 数据不足，保留剩余部分
+                self.serial_buffer = self.serial_buffer[header_index:]
+                break
     
     def add_debug_message(self, message):
         # 添加调试信息到调试窗口
