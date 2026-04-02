@@ -1501,6 +1501,13 @@ class DL24App(QMainWindow):
         
     def toggle_connection(self):
         if not self.is_connected:
+            # 立即更改按钮为黄色，显示"连接中"
+            self.connect_btn.setText("连接中")
+            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: yellow; padding: 0px; margin: 0px;")
+            
+            # 强制UI更新
+            QApplication.processEvents()
+            
             # 连接串口
             port = self.port_combo.currentText()
             if port:
@@ -1509,6 +1516,9 @@ class DL24App(QMainWindow):
                     ports = [p.device for p in serial.tools.list_ports.comports()]
                     if port not in ports:
                         QMessageBox.warning(self, "错误", f"串口 {port} 不存在或不可用")
+                        # 连接失败，恢复按钮原始状态
+                        self.connect_btn.setText("连接")
+                        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
                         return
                     
                     # 尝试多次打开串口，处理有数据输入的情况
@@ -1551,6 +1561,9 @@ class DL24App(QMainWindow):
                             time.sleep(0.5)
                 except Exception as e:
                     QMessageBox.warning(self, "错误", f"无法连接到串口 {port}: {str(e)}")
+                    # 连接失败，恢复按钮原始状态
+                    self.connect_btn.setText("连接")
+                    self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
         else:
             # 断开串口
             if self.serial_port:
