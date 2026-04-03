@@ -669,7 +669,8 @@ class DL24App(QMainWindow):
         
         # 下拉菜单
         self.mode_combo = QComboBox()
-        self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px; font-family: 'Microsoft YaHei'; color: black;")
+        self.mode_combo.setFont(self.zone3_title.font())
+        self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px; color: black;")
         self.mode_combo.addItem("CC Constant current", 1)
         self.mode_combo.addItem("CV Constant voltage", 2)
         self.mode_combo.addItem("CP Constant power", 3)
@@ -693,7 +694,7 @@ class DL24App(QMainWindow):
         
         # 添加一行间距
         font_metrics = QFontMetrics(self.mode_combo.font())
-        line_height = int(font_metrics.height() * 0.5)
+        line_height = int(font_metrics.height() * 1.5)
         mode_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.zone3_layout.addItem(mode_spacer)
         
@@ -722,6 +723,19 @@ class DL24App(QMainWindow):
         cutoff_layout.addWidget(cutoff_label)
         
         cutoff_layout.addWidget(self.cutoff_voltage_entry)
+        
+        # 添加四个空格
+        font_metrics = QFontMetrics(cutoff_label.font())
+        space_width = font_metrics.width(" ") * 4
+        space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        cutoff_layout.addItem(space_spacer)
+        
+        # 添加设置按钮
+        self.vset_button = QPushButton("   设置   ")
+        self.vset_button.setMinimumSize(180, 45)
+        self.vset_button.setMaximumSize(180, 45)
+        self.vset_button.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+        cutoff_layout.addWidget(self.vset_button)
         
         cutoff_layout.addStretch()  # 添加弹性空间，使内容左对齐
         self.zone3_layout.addWidget(cutoff_widget)
@@ -756,11 +770,53 @@ class DL24App(QMainWindow):
         
         load_layout.addWidget(self.load_current_entry)
         
+        # 添加四个空格
+        font_metrics = QFontMetrics(load_label.font())
+        space_width = font_metrics.width(" ") * 4
+        space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        load_layout.addItem(space_spacer)
+        
+        # 添加设置按钮
+        self.iset_button = QPushButton("   设置   ")
+        self.iset_button.setMinimumSize(180, 45)
+        self.iset_button.setMaximumSize(180, 45)
+        self.iset_button.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+        load_layout.addWidget(self.iset_button)
+        
         load_layout.addStretch()  # 添加弹性空间，使内容左对齐
         self.zone3_layout.addWidget(load_widget)
         
         # 4. 显示 widget (Zone 4)
         self.zone4_widget = QWidget(main_widget)
+        
+        # 6. 按钮 widget (below Zone 4)
+        self.buttons_widget = QWidget(main_widget)
+        
+        # 创建按钮布局
+        self.buttons_layout = QHBoxLayout(self.buttons_widget)
+        self.buttons_layout.setContentsMargins(20, 20, 20, 20)  # 边距
+        self.buttons_layout.setSpacing(20)  # 按钮间距
+        
+        # 清除数据按钮
+        self.clear_data_btn = QPushButton("清除数据")
+        self.clear_data_btn.setMinimumSize(180, 45)
+        self.clear_data_btn.setMaximumSize(180, 45)
+        self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+        self.clear_data_btn.setToolTip("清除数据")
+        
+        # 启动按钮
+        self.start_btn = QPushButton("启动")
+        self.start_btn.setMinimumSize(180, 45)
+        self.start_btn.setMaximumSize(180, 45)
+        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+        self.start_btn.setToolTip("启动")
+        
+        # 添加弹性空间和按钮，使按钮均匀分布
+        self.buttons_layout.addStretch()
+        self.buttons_layout.addWidget(self.clear_data_btn)
+        self.buttons_layout.addStretch()
+        self.buttons_layout.addWidget(self.start_btn)
+        self.buttons_layout.addStretch()
         
         # 5. 调试窗口
         self.debug_window = QTextEdit(main_widget)
@@ -806,7 +862,8 @@ class DL24App(QMainWindow):
         
         # 下拉菜单
         self.port_combo = QComboBox()
-        self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px;")
+        self.port_combo.setFont(port_label.font())
+        self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px; color: black;")
         self.refresh_serial_ports()
         port_layout.addWidget(self.port_combo)
         
@@ -1201,7 +1258,7 @@ class DL24App(QMainWindow):
             zone3_width = zone2_width  # 与Zone2宽度相同
             # 精确计算 Zone3 高度以确保底部边距与顶部边距相同（20px）
             # 确保所有绿色间距保持不变
-            zone3_height = 250  # 精确高度，确保底部边距与顶部边距匹配
+            zone3_height = 350  # 进一步增加高度以完全显示按钮
             
             # 使用绝对定位设置Zone3的位置和大小
             self.zone3_widget.setGeometry(
@@ -1243,6 +1300,20 @@ class DL24App(QMainWindow):
                 int(zone4_y),
                 int(zone4_width),
                 int(zone4_height)
+            )
+            
+            # 计算按钮 widget 的位置和大小（位于 Zone4 下方）
+            buttons_x = zone4_x
+            buttons_y = zone4_y + zone4_height + top_margin  # 与 Zone4 的间距与其他区域之间的间距相同
+            buttons_width = zone4_width  # 与 Zone4 宽度相同
+            buttons_height = 100  # 按钮区域高度
+            
+            # 使用绝对定位设置按钮 widget 的位置和大小
+            self.buttons_widget.setGeometry(
+                int(buttons_x),
+                int(buttons_y),
+                int(buttons_width),
+                int(buttons_height)
             )
             
             # 计算并显示 Zone4 的间距
