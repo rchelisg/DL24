@@ -865,8 +865,7 @@ class DL24App(QMainWindow):
         self.debug_window.setStyleSheet("background-color: lightgrey; color: black; font-family: Courier New; font-size: 24px;")
         self.debug_window.setReadOnly(True)
         self.debug_window.setLineWrapMode(QTextEdit.NoWrap)
-        # 添加测试消息
-        self.add_debug_message("Debug window initialized")
+
         self.zone4_widget.setStyleSheet("background-color: white;")
         
         # 创建Zone4的布局为垂直布局
@@ -1549,20 +1548,24 @@ class DL24App(QMainWindow):
         self.scale_line4.setGeometry(int(scale4_x), int(scale4_y), int(scale4_width + 2 * self.scale_line4.padding), 100)
         
     def init_timer(self):
+        print("Initializing timers...")
         # 数据更新定时器
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_data)
         self.update_timer.start(1000)  # 1秒更新一次
+        print("Update timer started")
         
         # 曲线显示定时器
         self.plot_timer = QTimer()
         self.plot_timer.timeout.connect(self.update_plot)
         self.plot_timer.start(5000)  # 5秒更新一次
+        print("Plot timer started")
         
-        # 参数读取定时器
-        self.param_timer = QTimer()
-        self.param_timer.timeout.connect(self.get_parameter)
-        self.param_timer.start(5000)  # 5秒更新一次
+        # 主循环定时器
+        self.main_loop_timer = QTimer()
+        self.main_loop_timer.timeout.connect(self.MainLoop)
+        self.main_loop_timer.start(1000)  # 1秒更新一次
+        print("Main loop timer started")
         
         # 时间计数
         self.start_time = time.time()
@@ -1598,26 +1601,15 @@ class DL24App(QMainWindow):
         # self.vcut_spin.setEnabled(editable)
         pass
         
-    def get_parameter(self):
-        # 这里应该调用getParameter函数获取参数
-        # 从主机读取参数
-        print("读取参数")
-        # 实际应用中，这里应该通过串口读取数据并解析
-        # 现在使用固定值
-        # 固定模式：0 (CC)
-        mode = 0
-        # 固定电流：1.0A
-        current = 1.0
-        # 固定截止电压：3.5V
-        vcut = 3.5
-        
-        # 更新显示 - 暂时注释掉，因为我们移除了右侧面板
-        # self.mode_combo.setCurrentIndex(mode)
-        # self.current_spin.setValue(current)
-        # self.vcut_spin.setValue(vcut)
-        
-        # 更新Vcut曲线
-        self.update_vcut_curve(vcut)
+    def MainLoop(self):
+        # 主循环函数，每1000ms执行一次
+        import datetime
+        current_time = datetime.datetime.now().strftime('%M:%S')
+        output = f"MainLoop - {current_time}\n"
+        print(output)
+        # 写入文件以验证执行
+        with open('mainloop.log', 'a') as f:
+            f.write(output)
         
     def refresh_ports(self):
         self.port_combo.clear()
@@ -1737,16 +1729,8 @@ class DL24App(QMainWindow):
                                 # 正在接收数据
                                 self.update_rx_status(True)
                                 data = self.serial_port.read(self.serial_port.in_waiting)
-                                # 检查是否以 ff 55 开头
-                                if not (len(data) >= 2 and data[0] == 0xff and data[1] == 0x55):
-                                    # 转换为十六进制格式
-                                    hex_data = ' '.join([f'{b:02x}' for b in data])
-                                    # 显示在调试窗口
-                                    self.add_debug_message(hex_data)
                                 # 添加数据到缓冲区
                                 self.serial_buffer.extend(data)
-                                # 解码数据
-                                self.decode_serial_data()
                                 # 短暂延迟后恢复状态
                         QTimer.singleShot(500, lambda: self.update_rx_status(False))
             except Exception as e:
@@ -1784,101 +1768,7 @@ class DL24App(QMainWindow):
             else:
                 self.rx_status_icon.setStyleSheet("color: darkgrey;")
     
-    def decode_serial_data(self):
-        # 查找 0xFF 0x55 头
-        header_index = self.serial_buffer.find(b'\xff\x55')
-        while header_index != -1:
-            # 检查缓冲区是否有足够的数据（36字节）
-            if len(self.serial_buffer) - header_index >= 36:
-                # 提取36字节的数据帧
-                frame = self.serial_buffer[header_index:header_index+36]
-                
-                # 解码参数
-                try:
-                    # 电压 (SV) - 3字节, 除以100
-                    sv = int.from_bytes(frame[4:7], byteorder='big') / 100
-                    
-                    # 电流 (SI) - 3字节, 除以1000
-                    si = int.from_bytes(frame[7:10], byteorder='big') / 1000
-                    
-                    # 容量 (SAh) - 3字节, 除以1000
-                    sah = int.from_bytes(frame[10:13], byteorder='big') / 1000
-                    
-                    # 能量 (SWh) - 3字节, 除以100
-                    swh = int.from_bytes(frame[13:16], byteorder='big') / 100
-                    
-                    # 时间/持续时间 (SH) - 2字节, 直接使用
-                    sh = int.from_bytes(frame[18:20], byteorder='big')
-                    
-                    # 定时器分钟 (SM) - 1字节, 直接使用
-                    sm = frame[20]
-                    
-                    # 定时器秒 (SS) - 1字节, 直接使用
-                    ss = frame[21]
-                    
-                    # 限制电压 (SVcutoff) - 2字节, 除以10
-                    svcutoff = int.from_bytes(frame[22:24], byteorder='big') / 10
-                    
-                    # 限制电流 (SIset) - 2字节, 除以100
-                    iset = int.from_bytes(frame[24:26], byteorder='big') / 100
-                    
-                    # 限制功率 (SWset) - 1字节, 直接使用
-                    swset = frame[26]
-                    
-                    # 模式 (Smode) - 假设在某个位置，需要根据实际帧定义调整
-                    # 这里假设在第27字节
-                    smode = frame[27] if len(frame) > 27 else 0
-                    
-                    # 状态 (Sstate) - 假设在某个位置，需要根据实际帧定义调整
-                    # 这里假设在第28字节
-                    sstate = frame[28] if len(frame) > 28 else 0
-                    
-                    # 输出解码后的数据到控制台
-                    print(f"SV: {sv} V")
-                    print(f"SI: {si} A")
-                    print(f"SAh: {sah} Ah")
-                    print(f"SWh: {swh} Wh")
-                    print(f"SH: {sh} s")
-                    print(f"SM: {sm} min")
-                    print(f"SS: {ss} sec")
-                    print(f"SVcutoff: {svcutoff} V")
-                    print(f"SIset: {iset} A")
-                    print(f"SWset: {swset} W")
-                    print(f"Smode: {smode}")
-                    print(f"Sstate: {sstate}")
-                    print("------------------------")
-                except Exception as e:
-                    print(f"解码错误: {str(e)}")
-                
-                # 移除已处理的数据
-                self.serial_buffer = self.serial_buffer[header_index+36:]
-                header_index = self.serial_buffer.find(b'\xff\x55')
-            else:
-                # 数据不足，保留剩余部分
-                self.serial_buffer = self.serial_buffer[header_index:]
-                break
-    
-    def add_debug_message(self, message):
-        # 添加调试信息到调试窗口
-        if hasattr(self, 'debug_window'):
-            # 获取当前时间的分钟和秒
-            import datetime
-            now = datetime.datetime.now()
-            timestamp = f"{now.minute:02d}.{now.second:02d}"
-            # 添加时间戳到消息
-            message_with_timestamp = f"{timestamp}  {message}"
-            # 获取当前内容
-            current_text = self.debug_window.toPlainText()
-            # 拆分为行
-            lines = current_text.strip().split('\n')
-            # 保留最后2行，加上新消息（总共3行）
-            lines = lines[-2:] + [message_with_timestamp]
-            # 重新组合
-            new_text = '\n'.join(lines)
-            # 更新调试窗口
-            self.debug_window.setPlainText(new_text)
-            # 滚动到底部
-            self.debug_window.verticalScrollBar().setValue(self.debug_window.verticalScrollBar().maximum())
+
             
     def update_vcut_curve(self, vcut_value):
         # 更新Vcut曲线
