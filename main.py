@@ -126,12 +126,54 @@ class OverlayWidget(QWidget):
         self.setStyleSheet("background-color: transparent;")
         self.plot_window = None
         self.main_window = main_window
+        
+        # 添加Zone1标签
+        self.zone1_label = QLabel("实时放电曲线", self)
+        self.zone1_label.setAlignment(Qt.AlignCenter)
+        self.zone1_label.setStyleSheet("font-size: 32px; color: black;")
+        self.zone1_label.setFixedSize(600, 60)  # 增加宽度以容纳20个中文字符
+        self.zone1_label.setCursor(Qt.PointingHandCursor)
+        self.zone1_label.mouseDoubleClickEvent = self.on_label_double_click
     
     def set_plot_window(self, plot_window):
         self.plot_window = plot_window
     
     def set_main_window(self, main_window):
         self.main_window = main_window
+    
+    def on_label_double_click(self, event):
+        # 打开输入对话框让用户编辑标签内容
+        current_text = self.zone1_label.text()
+        
+        # 创建自定义输入对话框
+        dialog = QInputDialog(self)
+        dialog.setWindowTitle("编辑标签")
+        dialog.setLabelText("请输入新的标签内容:")
+        dialog.setTextValue(current_text)
+        dialog.setTextEchoMode(QLineEdit.Normal)
+        dialog.resize(400, 150)  # 调整对话框大小以容纳长文本
+        
+        # 设置对话框样式
+        dialog.setStyleSheet("QInputDialog { background-color: white; } QLabel { color: black; } QLineEdit { background-color: white; color: black; border: 1px solid gray; }")
+        
+        if dialog.exec_() == QDialog.Accepted:
+            new_text = dialog.textValue()
+            if new_text:
+                # 限制输入长度：最多20个中文字符或40个英文字母
+                if len(new_text) <= 20:
+                    self.zone1_label.setText(new_text)
+                else:
+                    # 截断到20个字符
+                    self.zone1_label.setText(new_text[:20])
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # 定位标签到Zone1的中心，靠近顶部
+        if self.parent():
+            parent_width = self.parent().width()
+            label_x = (parent_width - self.zone1_label.width()) // 2
+            label_y = 20  # 距离顶部20像素（增加以适应更大的标签）
+            self.zone1_label.move(label_x, label_y)
     
     def paintEvent(self, event):
         super().paintEvent(event)
