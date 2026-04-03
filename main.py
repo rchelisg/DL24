@@ -840,18 +840,18 @@ class DL24App(QMainWindow):
         self.buttons_layout.setSpacing(20)  # 按钮间距
         
         # 清除数据按钮
-        self.clear_data_btn = QPushButton("清除数据")
+        self.clear_data_btn = QPushButton("Clear")
         self.clear_data_btn.setMinimumSize(180, 45)
         self.clear_data_btn.setMaximumSize(180, 45)
         self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        self.clear_data_btn.setToolTip("清除数据")
+        self.clear_data_btn.setToolTip("Clear")
         
         # 启动按钮
-        self.start_btn = QPushButton("启动")
+        self.start_btn = QPushButton("OnOff")
         self.start_btn.setMinimumSize(180, 45)
         self.start_btn.setMaximumSize(180, 45)
         self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        self.start_btn.setToolTip("启动")
+        self.start_btn.setToolTip("OnOff")
         
         # 添加弹性空间和按钮，使按钮均匀分布
         self.buttons_layout.addStretch()
