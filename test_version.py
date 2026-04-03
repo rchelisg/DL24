@@ -1,74 +1,41 @@
-import hashlib
+# Test script to verify version incrementing logic
 
-# Simulate the get_revision function with our changes
 def test_version_increment():
-    # Test case 1: Patch version reaches 99
-    print("Test 1: Patch version reaches 99")
-    stored_revision = "1.00.99"
-    major, minor, patch = map(int, stored_revision.split('.'))
-    patch += 1
+    # Test cases for version incrementing
+    test_cases = [
+        ("0.1.98", "0.1.99"),  # Normal increment
+        ("0.1.99", "0.2.00"),  # Patch reaches 99, increment minor
+        ("0.2.00", "0.2.01"),  # Normal increment after reset
+        ("0.9.99", "1.0.00"),  # Edge case: minor reaches 99
+    ]
     
-    # When patch version reaches 99, reset to 00 and increment minor version
-    if patch > 99:
-        patch = 0
-        minor += 1
+    print("Testing version incrementing logic...")
+    
+    for current_version, expected_version in test_cases:
+        # Split version into components
+        major, minor, patch = map(int, current_version.split('.'))
         
-        # When minor version reaches 99, reset to 00 and increment major version
-        if minor > 99:
-            minor = 0
-            major += 1
-    
-    new_revision = f"{major}.{minor:02d}.{patch:02d}"
-    print(f"Old version: {stored_revision}")
-    print(f"New version: {new_revision}")
-    print(f"Expected: 1.01.00")
-    print(f"Test 1 {'PASSED' if new_revision == '1.01.00' else 'FAILED'}")
-    print()
-    
-    # Test case 2: Minor version reaches 99
-    print("Test 2: Minor version reaches 99")
-    stored_revision = "1.99.99"
-    major, minor, patch = map(int, stored_revision.split('.'))
-    patch += 1
-    
-    # When patch version reaches 99, reset to 00 and increment minor version
-    if patch > 99:
-        patch = 0
-        minor += 1
+        # Increment patch
+        patch += 1
         
-        # When minor version reaches 99, reset to 00 and increment major version
-        if minor > 99:
-            minor = 0
-            major += 1
-    
-    new_revision = f"{major}.{minor:02d}.{patch:02d}"
-    print(f"Old version: {stored_revision}")
-    print(f"New version: {new_revision}")
-    print(f"Expected: 2.00.00")
-    print(f"Test 2 {'PASSED' if new_revision == '2.00.00' else 'FAILED'}")
-    print()
-    
-    # Test case 3: Normal increment
-    print("Test 3: Normal increment")
-    stored_revision = "1.01.50"
-    major, minor, patch = map(int, stored_revision.split('.'))
-    patch += 1
-    
-    # When patch version reaches 99, reset to 00 and increment minor version
-    if patch > 99:
-        patch = 0
-        minor += 1
+        # If patch reaches 99, reset to 00 and increment minor
+        if patch > 99:
+            patch = 0
+            minor += 1
+            # If minor reaches 99, reset to 0 and increment major
+            if minor > 99:
+                minor = 0
+                major += 1
         
-        # When minor version reaches 99, reset to 00 and increment major version
-        if minor > 99:
-            minor = 0
-            major += 1
-    
-    new_revision = f"{major}.{minor:02d}.{patch:02d}"
-    print(f"Old version: {stored_revision}")
-    print(f"New version: {new_revision}")
-    print(f"Expected: 1.01.51")
-    print(f"Test 3 {'PASSED' if new_revision == '1.01.51' else 'FAILED'}")
+        # Generate new version
+        new_version = f"{major}.{minor}.{patch:02d}"
+        
+        # Check if it matches expected
+        status = "OK" if new_version == expected_version else "FAIL"
+        print(f"{status} {current_version} -> {new_version} (expected: {expected_version})")
+        
+        if new_version != expected_version:
+            print(f"  ERROR: Expected {expected_version}, got {new_version}")
 
 if __name__ == "__main__":
     test_version_increment()

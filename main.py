@@ -52,6 +52,10 @@ def get_revision():
                 else: 
                     major, minor, patch = map(int, stored_revision.split('.')) 
                     patch += 1
+                    # 如果patch达到99，重置为00并递增minor
+                    if patch > 99:
+                        patch = 0
+                        minor += 1
                     new_revision = f"{major}.{minor}.{patch:02d}"
             else:
                 # 文件格式不正确，使用默认版本号
@@ -840,18 +844,19 @@ class DL24App(QMainWindow):
         self.buttons_layout.setSpacing(20)  # 按钮间距
         
         # 清除数据按钮
-        self.clear_data_btn = QPushButton("Clear")
-        self.clear_data_btn.setMinimumSize(180, 45)
-        self.clear_data_btn.setMaximumSize(180, 45)
-        self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        self.clear_data_btn.setToolTip("Clear")
+        self.clear_data_btn = QPushButton("清除数据")
+        self.clear_data_btn.setMinimumSize(225, 56)
+        self.clear_data_btn.setMaximumSize(225, 56)
+        self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+        self.clear_data_btn.setToolTip("清除数据")
         
         # 启动按钮
-        self.start_btn = QPushButton("OnOff")
-        self.start_btn.setMinimumSize(180, 45)
-        self.start_btn.setMaximumSize(180, 45)
-        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        self.start_btn.setToolTip("OnOff")
+        self.start_btn = QPushButton("启动")
+        self.start_btn.setMinimumSize(225, 56)
+        self.start_btn.setMaximumSize(225, 56)
+        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+        self.start_btn.setToolTip("启动")
+        self.start_btn.clicked.connect(self.on_onoff_button_clicked)
         
         # 添加弹性空间和按钮，使按钮均匀分布
         self.buttons_layout.addStretch()
@@ -1561,8 +1566,9 @@ class DL24App(QMainWindow):
         self.plot_timer.start(5000)  # 5秒更新一次
         print("Plot timer started")
         
-        # 主循环定时器
+        # 主循环定时器 - 设置为最高优先级
         self.main_loop_timer = QTimer()
+        self.main_loop_timer.setTimerType(Qt.PreciseTimer)  # 使用精确定时器
         self.main_loop_timer.timeout.connect(self.MainLoop)
         self.main_loop_timer.start(1000)  # 1秒更新一次
         print("Main loop timer started")
@@ -1610,6 +1616,88 @@ class DL24App(QMainWindow):
         # 写入文件以验证执行
         with open('mainloop.log', 'a') as f:
             f.write(output)
+        
+        # 使用PX100协议查询设备数据
+        if self.is_connected:
+            # 读取状态和数据
+            status = self.ReadLStatus()
+            voltage = self.ReadSmV()
+            current = self.ReadSmA()
+            timer = self.ReadSTimer()
+            capacity = self.ReadSmAh()
+            energy = self.ReadSmWh()
+            # 新增查询
+            iset = self.ReadIset()
+            vset = self.ReadVset()
+            tset = self.ReadTset()
+            mode = self.ReadMode()
+            
+            # 分配变量
+            Wh = energy / 1000 if energy is not None else None
+            mAh = capacity if capacity is not None else None
+            Iset = iset / 100 if iset is not None else None
+            Vset = vset / 100 if vset is not None else None
+            
+            # 计算实时数据变量
+            V = voltage / 1000 if voltage is not None else None
+            A = current / 1000 if current is not None else None
+            W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
+            
+            # 更新Zone2显示
+            if hasattr(self, 'zone2_line1'):
+                v_str = f"{V:.2f}" if V is not None else "000.00"
+                a_str = f"{A:.2f}" if A is not None else "000.00"
+                self.zone2_line1.setText(f'<span style="color: blue;">&nbsp;{v_str}V</span><span style="color: red;">&nbsp;{a_str}A</span>')
+            
+            if hasattr(self, 'zone2_line2'):
+                w_str = f"{W:.2f}" if W is not None else "000.00"
+                mah_str = f"{mAh:.2f}" if mAh is not None else "000.00"
+                self.zone2_line2.setText(f'<span style="color: orange;">&nbsp;{w_str}W</span><span style="color: purple;">&nbsp;{mah_str}mAh</span>')
+            
+            if hasattr(self, 'zone2_line3'):
+                wh_str = f"{Wh:.2f}" if Wh is not None else "000.00"
+                self.zone2_line3.setText(f'<span style="color: darkgreen;">&nbsp;{wh_str}Wh</span>')
+            
+            # 更新Zone3显示
+            if hasattr(self, 'mode_combo') and mode is not None:
+                # Update Mode combo box based on read value
+                # Map mode values to combo box indexes
+                mode_map = {
+                    1: 0,  # CC
+                    2: 1,  # CV
+                    3: 2,  # CP
+                    4: 3   # CR
+                }
+                if mode in mode_map:
+                    self.mode_combo.setCurrentIndex(mode_map[mode])
+                    self.mode = mode
+            
+            if hasattr(self, 'cutoff_voltage_entry') and Vset is not None:
+                # Update Vset entry box
+                self.cutoff_voltage_entry.setText(f"{Vset:.2f}")
+            
+            if hasattr(self, 'load_current_entry') and Iset is not None:
+                # Update Iset entry box
+                self.load_current_entry.setText(f"{Iset:.2f}")
+            
+            # 打印查询结果
+            if timer is not None:
+                print(f"Timer: {timer['SH']}:{timer['SM']}:{timer['SS']}")
+            if tset is not None:
+                print(f"Tset: {tset['SHset']}:{tset['SMset']}:{tset['SSset']}")
+            if mode is not None:
+                print(f"Mode: {mode}")
+            
+            # 根据SLStatus更新OnOff按钮状态
+            if status is not None:
+                if status == 1:
+                    # SLStatus=1, 设备运行中
+                    self.start_btn.setText("停止")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                else:
+                    # SLStatus=0, 设备停止
+                    self.start_btn.setText("启动")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
         
     def refresh_ports(self):
         self.port_combo.clear()
@@ -1767,6 +1855,284 @@ class DL24App(QMainWindow):
                 self.rx_status_icon.setStyleSheet("color: green;")
             else:
                 self.rx_status_icon.setStyleSheet("color: darkgrey;")
+    
+    # PX100 Protocol Command Functions
+    def SetOff(self):
+        """Send SetOff command"""
+        if not self.is_connected:
+            print("Port is not open, cannot send SetOff command")
+            return False
+        command = b'\xb1\xb2\x01\x00\x00\xb6'
+        return self.send_data(command)
+    
+    def SetOn(self):
+        """Send SetOn command"""
+        if not self.is_connected:
+            print("Port is not open, cannot send SetOn command")
+            return False
+        command = b'\xb1\xb2\x01\x01\x00\xb6'
+        return self.send_data(command)
+    
+    def SetIset(self, current):
+        """Send SetIset command with current value"""
+        if not self.is_connected:
+            print("Port is not open, cannot send SetIset command")
+            return False
+        # current format: integer and decimal (00..99)
+        integer_part = int(current)
+        decimal_part = int((current - integer_part) * 100)
+        command = bytes([0xb1, 0xb2, 0x02, integer_part, decimal_part, 0xb6])
+        return self.send_data(command)
+    
+    def SetVset(self, voltage):
+        """Send SetVset command with voltage value"""
+        if not self.is_connected:
+            print("Port is not open, cannot send SetVset command")
+            return False
+        # voltage format: integer and decimal (00..99)
+        integer_part = int(voltage)
+        decimal_part = int((voltage - integer_part) * 100)
+        command = bytes([0xb1, 0xb2, 0x03, integer_part, decimal_part, 0xb6])
+        return self.send_data(command)
+    
+    def SetTset(self, time):
+        """Send SetTset command with time value"""
+        if not self.is_connected:
+            print("Port is not open, cannot send SetTset command")
+            return False
+        # time as 16-bit unsigned integer
+        time_value = int(time)
+        high_byte = (time_value >> 8) & 0xff
+        low_byte = time_value & 0xff
+        command = bytes([0xb1, 0xb2, 0x04, high_byte, low_byte, 0xb6])
+        return self.send_data(command)
+    
+    def SetResetCounters(self):
+        """Send SetResetCounters command"""
+        if not self.is_connected:
+            print("Port is not open, cannot send SetResetCounters command")
+            return False
+        command = b'\xb1\xb2\x05\x00\x00\xb6'
+        return self.send_data(command)
+    
+    # PX100 Protocol Query Functions with retry logic
+    def _send_query(self, command, expected_response_length):
+        """Send query and wait for response with timeout and retry"""
+        if not self.is_connected:
+            print("Port is not open, cannot send query")
+            return None
+        
+        max_retries = 3
+        timeout = 0.05  # 50ms timeout
+        
+        for attempt in range(max_retries):
+            # Clear serial buffer
+            self.serial_buffer.clear()
+            
+            # Send command
+            if not self.send_data(command):
+                continue
+            
+            # Wait for response
+            import time
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                if hasattr(self.serial_port, 'in_waiting'):
+                    if self.serial_port.in_waiting > 0:
+                        data = self.serial_port.read(self.serial_port.in_waiting)
+                        self.serial_buffer.extend(data)
+                        
+                        # Check if we have enough data
+                        if len(self.serial_buffer) >= expected_response_length:
+                            return self.serial_buffer[:expected_response_length]
+                # Small delay to avoid busy waiting
+                time.sleep(0.01)
+        
+        return None
+    
+    def ReadLStatus(self):
+        """Read SLStatus"""
+        if not self.is_connected:
+            print("Port is not open, cannot read LStatus")
+            return None
+        command = b'\xb1\xb2\x10\x00\x00\xb6'
+        response = self._send_query(command, 5)  # Expected response length: 5 bytes
+        
+        if response and len(response) == 5 and response[0] == 0xca and response[1] == 0xcb:
+            return response[4]  # SLStatus = xx
+        return None
+    
+    def ReadSmV(self):
+        """Read SmV"""
+        if not self.is_connected:
+            print("Port is not open, cannot read SmV")
+            return None
+        command = b'\xb1\xb2\x11\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SmV = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadSmA(self):
+        """Read SmA"""
+        if not self.is_connected:
+            print("Port is not open, cannot read SmA")
+            return None
+        command = b'\xb1\xb2\x12\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SmA = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadSTimer(self):
+        """Read STimer (SH, SM, SS)"""
+        if not self.is_connected:
+            print("Port is not open, cannot read STimer")
+            return None
+        command = b'\xb1\xb2\x13\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SH=xx, SM=yy, SS=zz
+            return {
+                'SH': response[2],
+                'SM': response[3],
+                'SS': response[4]
+            }
+        return None
+    
+    def ReadSmAh(self):
+        """Read SmAh"""
+        if not self.is_connected:
+            print("Port is not open, cannot read SmAh")
+            return None
+        command = b'\xb1\xb2\x14\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SmAh = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadSmWh(self):
+        """Read SmWh"""
+        if not self.is_connected:
+            print("Port is not open, cannot read SmWh")
+            return None
+        command = b'\xb1\xb2\x15\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SmWh = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadMosT(self):
+        """Read SMosT"""
+        if not self.is_connected:
+            print("Port is not open, cannot read MosT")
+            return None
+        command = b'\xb1\xb2\x16\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SMosT = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadIset(self):
+        """Read SIset"""
+        if not self.is_connected:
+            print("Port is not open, cannot read Iset")
+            return None
+        command = b'\xb1\xb2\x17\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SIset = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadVset(self):
+        """Read SVset"""
+        if not self.is_connected:
+            print("Port is not open, cannot read Vset")
+            return None
+        command = b'\xb1\xb2\x18\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SVset = 0xxxyyzz
+            value = (response[2] << 16) | (response[3] << 8) | response[4]
+            return value
+        return None
+    
+    def ReadTset(self):
+        """Read Tset (SHset, SMset, SSset)"""
+        if not self.is_connected:
+            print("Port is not open, cannot read Tset")
+            return None
+        command = b'\xb1\xb2\x19\x00\x00\xb6'
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
+        
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
+            # SHset=hh, SMset=mm, SSset=ss
+            return {
+                'SHset': response[2],
+                'SMset': response[3],
+                'SSset': response[4]
+            }
+        return None
+    
+    def ReadMode(self):
+        """Read current mode"""
+        if not self.is_connected:
+            print("Port is not open, cannot read Mode")
+            return None
+        # Assuming mode command is 0x20 based on sequential pattern
+        command = b'\xb1\xb2\x20\x00\x00\xb6'
+        response = self._send_query(command, 5)  # Expected response length: 5 bytes
+        
+        if response and len(response) == 5 and response[0] == 0xca and response[1] == 0xcb:
+            return response[4]  # Mode value
+        return None
+    
+    def on_onoff_button_clicked(self):
+        """Handle OnOff button click"""
+        if self.is_connected:
+            # Check current button text to determine action
+            if self.start_btn.text() == "启动":
+                # Send SetOn command
+                success = self.SetOn()
+                if success:
+                    print("SetOn command sent successfully")
+                    # Immediately update button state to reflect new status
+                    self.start_btn.setText("停止")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                else:
+                    print("Failed to send SetOn command")
+            else:
+                # Send SetOff command
+                success = self.SetOff()
+                if success:
+                    print("SetOff command sent successfully")
+                    # Immediately update button state to reflect new status
+                    self.start_btn.setText("启动")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                else:
+                    print("Failed to send SetOff command")
+        else:
+            print("Port is not open, cannot send command")
     
 
             
