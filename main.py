@@ -702,7 +702,7 @@ class DL24App(QMainWindow):
         
         # 2. 显示widget (Zone 2)
         self.zone2_widget = QWidget(main_widget)
-        self.zone2_widget.setStyleSheet("background-color: white; border: 1px solid purple;")
+        self.zone2_widget.setStyleSheet("background-color: white; border: 1px solid #E0E0E0;")
         
         # 创建Zone2的布局为垂直布局
         self.zone2_layout = QVBoxLayout(self.zone2_widget)
@@ -1009,246 +1009,136 @@ class DL24App(QMainWindow):
         port_layout.addStretch()  # 添加弹性空间，使内容左对齐
         self.zone4_layout.addWidget(port_widget)
         
-        # 添加Zone2标题
-        self.zone2_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;实时数据</span>')
-        self.zone2_title.setAlignment(Qt.AlignLeft)  # 左对齐
-        self.zone2_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用Expanding以填充水平空间
-        self.zone2_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
-        self.zone2_layout.addWidget(self.zone2_title)
+        # 添加新行（3列）在现有行1上方
+        # 创建行布局，设置0间距
+        new_row_layout = QHBoxLayout()
+        new_row_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        new_row_layout.setSpacing(0)  # 0间距
         
-        # 添加空行（使用 QSpacerItem 创建垂直空间）
-        font_metrics = QFontMetrics(self.zone2_title.font())
-        line_height = font_metrics.height()
-        spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(spacer)
+        # 列1：5%宽度
+        col1 = QWidget()
+        new_row_layout.addWidget(col1)
+        new_row_layout.setStretch(0, 5)  # 5%
         
-        # 创建第1行：  电压  00.000 (V)
-        line1_layout = QHBoxLayout()
-        line1_layout.setSpacing(0)
-        line1_layout.setContentsMargins(0, 0, 0, 0)
+        # 列2：剩余宽度（90%），添加"实时数据"标签
+        col2 = QWidget()
+        col2_layout = QHBoxLayout(col2)
+        col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        col2_layout.setSpacing(0)
         
-        # 标签
-        self.zone2_line1_label = QLabel('  电压  ')
-        self.zone2_line1_label.setFont(QFont("SimHei", int(font.pointSize() * 0.8), QFont.Light))  # 标签字体小20%
-        self.zone2_line1_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        label = QLabel("实时数据")
+        font = QFont("Microsoft YaHei", 14)  # 雅黑，14px
+        label.setFont(font)
+        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        col2_layout.addWidget(label)
         
-        # 值
-        self.zone2_line1_value = QLabel('00.000')
-        self.zone2_line1_value.setFont(font)
-        self.zone2_line1_value.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0; color: blue;")
+        new_row_layout.addWidget(col2)
+        new_row_layout.setStretch(1, 90)  # 90%
         
-        # 单位
-        self.zone2_line1_unit = QLabel(' (V)')
-        self.zone2_line1_unit.setFont(font)
-        self.zone2_line1_unit.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        # 列3：5%宽度
+        col3 = QWidget()
+        new_row_layout.addWidget(col3)
+        new_row_layout.setStretch(2, 5)  # 5%
         
-        line1_layout.addWidget(self.zone2_line1_label)
-        line1_layout.addWidget(self.zone2_line1_value)
-        line1_layout.addWidget(self.zone2_line1_unit)
-        line1_layout.addStretch()
+        # 设置行高
+        new_row_widget = QWidget()
+        new_row_widget.setLayout(new_row_layout)
+        new_row_widget.setMinimumHeight(30)  # 调整行高以容纳14px字体
+        new_row_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
         
-        # 将水平布局添加到垂直布局
-        line1_widget = QWidget()
-        line1_widget.setLayout(line1_layout)
-        line1_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        line1_widget.setStyleSheet("border: none; background-color: transparent;")
-        self.zone2_layout.addWidget(line1_widget)
+        # 添加新行到Zone2布局
+        self.zone2_layout.addWidget(new_row_widget)
         
-        # 添加空行（高度为line1字体高度的20%，减少50%）
-        font_metrics = QFontMetrics(font)
-        line_height = font_metrics.height()
-        spacer_height = int(line_height * 0.2)
-        self.spacer_line1 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(self.spacer_line1)
+        # 添加行1下方的7px间距
+        self.spacer_below_row1 = QWidget()
+        self.spacer_below_row1.setMinimumHeight(7)  # 默认7px高度
+        self.zone2_layout.addWidget(self.spacer_below_row1)
         
-        # 创建第2行：  电流  00.000 (A)
-        line2_layout = QHBoxLayout()
-        line2_layout.setSpacing(0)
-        line2_layout.setContentsMargins(0, 0, 0, 0)
+        # 标签文本列表
+        labels = ["电压", "电流", "功耗", "容量", "功率", "耗时"]
+        # 单位列表
+        units = ["V", "A", "Wh", "mAh", "W", "HMS"]
         
-        # 标签
-        self.zone2_line2_label = QLabel('  电流  ')
-        self.zone2_line2_label.setFont(QFont("SimHei", int(font.pointSize() * 0.8), QFont.Light))  # 标签字体小20%
-        self.zone2_line2_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
+        # 添加6行数据，每行4列
+        for i in range(6):
+            # 创建行布局，设置0间距
+            row_layout = QHBoxLayout()
+            row_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+            row_layout.setSpacing(0)  # 0间距
+            
+            # 列1：10%宽度
+            col1 = QWidget()
+            row_layout.addWidget(col1)
+            row_layout.setStretch(0, 10)  # 10%
+            
+            # 列2：20%宽度，添加标签
+            col2 = QWidget()
+            col2_layout = QHBoxLayout(col2)
+            col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+            col2_layout.setSpacing(0)
+            
+            label = QLabel(labels[i])
+            font = QFont("SimHei", 16)  # 黑体，16px
+            label.setFont(font)
+            label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+            col2_layout.addWidget(label)
+            
+            row_layout.addWidget(col2)
+            row_layout.setStretch(1, 20)  # 20%
+            
+            # 列3：50%宽度，添加参数值
+            col3 = QWidget()
+            col3_layout = QHBoxLayout(col3)
+            col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+            col3_layout.setSpacing(0)
+            
+            # 创建参数值标签
+            value_label = QLabel("00.000" if i == 0 else "00.000" if i == 1 else "0000.0" if i == 2 else "00000" if i == 3 else "000.00" if i == 4 else "")
+            font = QFont("Arial", 24)  # Arial，24pt
+            value_label.setFont(font)
+            value_label.setAlignment(Qt.AlignCenter)
+            value_label.setContentsMargins(0, 0, 0, 0)  # 0边距
+            col3_layout.addWidget(value_label)
+            
+            # 存储标签引用以便后续更新
+            if not hasattr(self, 'zone2_value_labels'):
+                self.zone2_value_labels = []
+            self.zone2_value_labels.append(value_label)
+            
+            row_layout.addWidget(col3)
+            row_layout.setStretch(2, 40)  # 40%
+            
+            # 列4：剩余宽度（30%），添加单位标签
+            col4 = QWidget()
+            col4_layout = QHBoxLayout(col4)
+            col4_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+            col4_layout.setSpacing(0)
+            
+            unit_label = QLabel(units[i])
+            font = QFont("Arial", 18)  # Arial，18pt
+            unit_label.setFont(font)
+            unit_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            unit_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+            col4_layout.addWidget(unit_label)
+            
+            row_layout.addWidget(col4)
+            row_layout.setStretch(3, 30)  # 30%
+            
+            # 设置行高
+            row_widget = QWidget()
+            row_widget.setLayout(row_layout)
+            row_widget.setMinimumHeight(35)  # 调整行高以容纳16px字体
+            row_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+            
+            # 添加行到Zone2布局
+            self.zone2_layout.addWidget(row_widget)
         
-        # 值
-        self.zone2_line2_value = QLabel('00.000')
-        self.zone2_line2_value.setFont(font)
-        self.zone2_line2_value.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0; color: red;")
-        
-        # 单位
-        self.zone2_line2_unit = QLabel(' (A)')
-        self.zone2_line2_unit.setFont(font)
-        self.zone2_line2_unit.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        line2_layout.addWidget(self.zone2_line2_label)
-        line2_layout.addWidget(self.zone2_line2_value)
-        line2_layout.addWidget(self.zone2_line2_unit)
-        line2_layout.addStretch()
-        
-        # 将水平布局添加到垂直布局
-        line2_widget = QWidget()
-        line2_widget.setLayout(line2_layout)
-        line2_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        line2_widget.setStyleSheet("border: none; background-color: transparent;")
-        self.zone2_layout.addWidget(line2_widget)
-        
-        # 添加空行（高度为line2字体高度的20%，减少50%）
-        font_metrics = QFontMetrics(font)
-        line_height = font_metrics.height()
-        spacer_height = int(line_height * 0.2)
-        self.spacer_line2 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(self.spacer_line2)
-        
-        # 创建第3行：  能量  0000.0 (Wh)
-        line3_layout = QHBoxLayout()
-        line3_layout.setSpacing(0)
-        line3_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 标签
-        self.zone2_line3_label = QLabel('  能量  ')
-        self.zone2_line3_label.setFont(QFont("SimHei", int(font.pointSize() * 0.8), QFont.Light))  # 标签字体小20%
-        self.zone2_line3_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        # 值
-        self.zone2_line3_value = QLabel('0000.0')
-        self.zone2_line3_value.setFont(font)
-        self.zone2_line3_value.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0; color: orange;")
-        
-        # 单位
-        self.zone2_line3_unit = QLabel(' (Wh)')
-        self.zone2_line3_unit.setFont(font)
-        self.zone2_line3_unit.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        line3_layout.addWidget(self.zone2_line3_label)
-        line3_layout.addWidget(self.zone2_line3_value)
-        line3_layout.addWidget(self.zone2_line3_unit)
-        line3_layout.addStretch()
-        
-        # 将水平布局添加到垂直布局
-        line3_widget = QWidget()
-        line3_widget.setLayout(line3_layout)
-        line3_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        line3_widget.setStyleSheet("border: none; background-color: transparent;")
-        self.zone2_layout.addWidget(line3_widget)
-        
-        # 添加空行（高度为line3字体高度的20%，减少50%）
-        font_metrics = QFontMetrics(font)
-        line_height = font_metrics.height()
-        spacer_height = int(line_height * 0.2)
-        self.spacer_line3 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(self.spacer_line3)
-        
-        # 创建第4行：  容量  000000 (mAh)
-        line4_layout = QHBoxLayout()
-        line4_layout.setSpacing(0)
-        line4_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 标签
-        self.zone2_line4_label = QLabel('  容量  ')
-        self.zone2_line4_label.setFont(QFont("SimHei", int(font.pointSize() * 0.8), QFont.Light))  # 标签字体小20%
-        self.zone2_line4_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        # 值
-        self.zone2_line4_value = QLabel('000000')
-        self.zone2_line4_value.setFont(font)
-        self.zone2_line4_value.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0; color: purple;")
-        
-        # 单位
-        self.zone2_line4_unit = QLabel(' (mAh)')
-        self.zone2_line4_unit.setFont(font)
-        self.zone2_line4_unit.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        line4_layout.addWidget(self.zone2_line4_label)
-        line4_layout.addWidget(self.zone2_line4_value)
-        line4_layout.addWidget(self.zone2_line4_unit)
-        line4_layout.addStretch()
-        
-        # 将水平布局添加到垂直布局
-        line4_widget = QWidget()
-        line4_widget.setLayout(line4_layout)
-        line4_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        line4_widget.setStyleSheet("border: none; background-color: transparent;")
-        self.zone2_layout.addWidget(line4_widget)
-        
-        # 添加空行（高度为line4字体高度的20%，减少50%）
-        font_metrics = QFontMetrics(font)
-        line_height = font_metrics.height()
-        spacer_height = int(line_height * 0.2)
-        self.spacer_line4 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(self.spacer_line4)
-        
-        # 创建第5行：  功率  00.000 (W)
-        line5_layout = QHBoxLayout()
-        line5_layout.setSpacing(0)
-        line5_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 标签
-        self.zone2_line5_label = QLabel('  功率  ')
-        self.zone2_line5_label.setFont(QFont("SimHei", int(font.pointSize() * 0.8), QFont.Light))  # 标签字体小20%
-        self.zone2_line5_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        # 值
-        self.zone2_line5_value = QLabel('00.000')
-        self.zone2_line5_value.setFont(font)
-        self.zone2_line5_value.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0; color: green;")
-        
-        # 单位
-        self.zone2_line5_unit = QLabel(' (W)')
-        self.zone2_line5_unit.setFont(font)
-        self.zone2_line5_unit.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        line5_layout.addWidget(self.zone2_line5_label)
-        line5_layout.addWidget(self.zone2_line5_value)
-        line5_layout.addWidget(self.zone2_line5_unit)
-        line5_layout.addStretch()
-        
-        # 将水平布局添加到垂直布局
-        line5_widget = QWidget()
-        line5_widget.setLayout(line5_layout)
-        line5_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        line5_widget.setStyleSheet("border: none; background-color: transparent;")
-        self.zone2_layout.addWidget(line5_widget)
-        
-        # 添加空行（高度为line5字体高度的20%，减少50%）
-        font_metrics = QFontMetrics(font)
-        line_height = font_metrics.height()
-        spacer_height = int(line_height * 0.2)
-        self.spacer_line5 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(self.spacer_line5)
-        
-        # 创建第6行：  耗时  00:00:00
-        line6_layout = QHBoxLayout()
-        line6_layout.setSpacing(0)
-        line6_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 标签
-        self.zone2_line6_label = QLabel('  耗时  ')
-        self.zone2_line6_label.setFont(QFont("SimHei", int(font.pointSize() * 0.8), QFont.Light))  # 标签字体小20%
-        self.zone2_line6_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        # 值
-        self.zone2_line6_value = QLabel('00:00:00')
-        self.zone2_line6_value.setFont(font)
-        self.zone2_line6_value.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        
-        line6_layout.addWidget(self.zone2_line6_label)
-        line6_layout.addWidget(self.zone2_line6_value)
-        line6_layout.addStretch()
-        
-        # 将水平布局添加到垂直布局
-        line6_widget = QWidget()
-        line6_widget.setLayout(line6_layout)
-        line6_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        line6_widget.setStyleSheet("border: none; background-color: transparent;")
-        self.zone2_layout.addWidget(line6_widget)
-        
-        # 添加空行（高度为line6字体高度的20%，减少50%）
-        font_metrics = QFontMetrics(font)
-        line_height = font_metrics.height()
-        spacer_height = int(line_height * 0.2)
-        self.spacer_line6 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone2_layout.addItem(self.spacer_line6)
+        # 添加行7下方的3px间距
+        self.spacer_after_row7 = QWidget()
+        self.spacer_after_row7.setMinimumHeight(3)  # 默认3px高度
+        self.zone2_layout.addWidget(self.spacer_after_row7)
         
         # 3. 刻度线widget
         self.scale_line = ScaleLineWidget(main_widget)
@@ -1436,284 +1326,167 @@ class DL24App(QMainWindow):
         zone2_x = left_margin + zone1_width + middle_spacing
         zone2_width = ui_width - zone2_x - right_margin  # 确保右侧边距与左侧边距相同
         
-        # 计算六行文本的字体大小，使其填充整个宽度
-        if hasattr(self, 'zone2_line1_label') and hasattr(self, 'zone2_line2_label') and hasattr(self, 'zone2_line3_label') and hasattr(self, 'zone2_line4_label') and hasattr(self, 'zone2_line5_label') and hasattr(self, 'zone2_line6_label'):
-            # 计算适合的字体大小
-            def calculate_font_size(text, width):
-                font_size = 10  # 起始字体大小
-                max_font_size = 200  # 最大字体大小，防止无限循环
-                font = QFont("SimHei", font_size, QFont.Light)  # 使用黑体字体
-                while font_size < max_font_size:
-                    font.setPointSize(font_size)
-                    font_metrics = QFontMetrics(font)
-                    text_width = font_metrics.horizontalAdvance(text)
-                    if text_width > width * 0.95:  # 留5%的余量
-                        return font_size - 1
-                    font_size += 1
-                return max_font_size
+        # Zone2 is now empty, so no font size calculation needed
+        # 使用默认字体作为Zone2的字体
+        zone2_title_font = QFont("SimHei", 14, QFont.Light)  # 使用黑体字体
+        
+        # 更新Zone3和Zone4的标题字体以匹配Zone2的字体
+        if hasattr(self, 'zone3_title'):
+            self.zone3_title.setFont(zone2_title_font)
+        if hasattr(self, 'zone4_title'):
+            self.zone4_title.setFont(zone2_title_font)
+        
+        # 计算Zone2的高度：标题高度
+        # 计算标题高度
+        title_font_metrics = QFontMetrics(zone2_title_font)
+        title_height = title_font_metrics.height()
+        
+        # 计算Zone2的高度：标题高度
+        zone2_height = title_height + 20  # 标题高度加上一些边距
             
-            # 获取每行文本（无格式，用于计算字体大小）
-            line1_text_plain = " 电压  00.000 (V)"
-            line2_text_plain = " 电流  00.000 (A)"
-            line3_text_plain = " 能量  0000.0 (Wh)"
-            line4_text_plain = " 容量  000000 (mAh)"
-            line5_text_plain = " 功率  00.000 (W)"
-            line6_text_plain = " 耗时  00:00:00"
+        # 使用绝对定位设置Zone1的位置和大小
+        self.display_widget.setGeometry(
+            int(left_margin),
+            int(top_margin),
+            int(zone1_width),
+            int(zone1_height)
+        )
             
-            # 计算每行的字体大小
-            line1_font_size = calculate_font_size(line1_text_plain, zone2_width)
-            line2_font_size = calculate_font_size(line2_text_plain, zone2_width)
-            line3_font_size = calculate_font_size(line3_text_plain, zone2_width)
-            line4_font_size = calculate_font_size(line4_text_plain, zone2_width)
-            line5_font_size = calculate_font_size(line5_text_plain, zone2_width)
-            line6_font_size = calculate_font_size(line6_text_plain, zone2_width)
+        # 使用绝对定位设置Zone2的位置和大小
+        self.zone2_widget.setGeometry(
+            int(zone2_x),
+            int(top_margin),
+            int(zone2_width),
+            int(zone2_height)
+        )
+        
+        # 计算3%的水平间距
+        horizontal_spacing = zone2_width * 0.03
+        
+        # 调整间距高度，与Zone2宽度成比例
+        # 默认宽度200px对应指定的间距值
+        base_width = 200
+        
+        # 计算新的间距高度
+        if hasattr(self, 'spacer_below_row1'):
+            # 7px间距
+            spacer_below_height = int((zone2_width / base_width) * 7)
+            spacer_below_height = max(3, min(spacer_below_height, 14))
+            self.spacer_below_row1.setMinimumHeight(spacer_below_height)
+            self.spacer_below_row1.setMaximumHeight(spacer_below_height)
+        
+        if hasattr(self, 'spacer_after_row7'):
+            # 3px间距
+            spacer_after_height = int((zone2_width / base_width) * 3)
+            spacer_after_height = max(1, min(spacer_after_height, 6))
+            self.spacer_after_row7.setMinimumHeight(spacer_after_height)
+            self.spacer_after_row7.setMaximumHeight(spacer_after_height)
+        
+        # 计算Zone2高度：行高 + 间距高度
+        row1_height = 30  # 第一行高度
+        row_height = 35  # 其他行高度
+        num_rows = 7  # 1新行 + 6原有行
+        
+        # 计算所有间距的总高度
+        total_spacer_height = 0
+        if hasattr(self, 'spacer_below_row1'):
+            total_spacer_height += self.spacer_below_row1.minimumHeight()
+        if hasattr(self, 'spacer_after_row7'):
+            total_spacer_height += self.spacer_after_row7.minimumHeight()
+        
+        # 计算总高度
+        zone2_height = row1_height + (row_height * 6) + total_spacer_height
+        
+        # 重新设置Zone2大小
+        self.zone2_widget.setGeometry(
+            int(zone2_x),
+            int(top_margin),
+            int(zone2_width),
+            int(zone2_height)
+        )
+        
+        # 调整Zone2布局的边距，不设置任何间距
+        self.zone2_layout.setContentsMargins(0, 0, 0, 0)
             
-            # 使用最小的字体大小以确保所有行都能容纳
-            font_size = min(line1_font_size, line2_font_size, line3_font_size, line4_font_size, line5_font_size, line6_font_size)
-            
-            # 增加字体大小10%
-            font_size = int(font_size * 1.1)
-            
-            # 保持原始字体大小，通过HTML样式单独调整标签字体大小
-            # font_size = font_size * 0.9  # 移除这个乘数，保持原始字体大小
-            
-            # 应用字体大小
-            font = QFont("SimHei", int(font_size), QFont.Light)  # 使用黑体字体
-            
-            # 获取Zone2标题的字体
-            zone2_title_font = self.zone2_title.font()
-            
-            # 更新Zone3和Zone4的标题字体以匹配Zone2的标题字体
-            if hasattr(self, 'zone3_title'):
-                self.zone3_title.setFont(zone2_title_font)
-            if hasattr(self, 'zone4_title'):
-                self.zone4_title.setFont(zone2_title_font)
-            
-            # 计算Zone2的高度：从顶部到line6底部
-            # 计算标题高度
-            title_font_metrics = QFontMetrics(self.zone2_title.font())
-            title_height = title_font_metrics.height()
-            
-            # 计算数据行高度
-            data_font_metrics = QFontMetrics(font)
-            data_line_height = data_font_metrics.height()
-            
-            # 计算总高度：标题 + 标题下空行 + 6行数据 + 6行空行（每行空行为数据行高度的20%，减少50%）
-            zone2_height = (
-                title_height +  # 标题
-                title_height +  # 标题下空行
-                data_line_height +  # 第1行
-                data_line_height * 0.2 +  # 第1行下空行
-                data_line_height +  # 第2行
-                data_line_height * 0.2 +  # 第2行下空行
-                data_line_height +  # 第3行
-                data_line_height * 0.2 +  # 第3行下空行
-                data_line_height +  # 第4行
-                data_line_height * 0.2 +  # 第4行下空行
-                data_line_height +  # 第5行
-                data_line_height * 0.2 +  # 第5行下空行
-                data_line_height +  # 第6行
-                data_line_height * 0.2  # 第6行下空行
-            )
-            
-            # 使用绝对定位设置Zone1的位置和大小
-            self.display_widget.setGeometry(
-                int(left_margin),
-                int(top_margin),
-                int(zone1_width),
-                int(zone1_height)
-            )
-            
-            # 使用绝对定位设置Zone2的位置和大小
-            self.zone2_widget.setGeometry(
-                int(zone2_x),
-                int(top_margin),
-                int(zone2_width),
-                int(zone2_height)
-            )
-            
-            # 计算Zone3的位置和大小
-            zone3_x = zone2_x
-            zone3_y = top_margin + zone2_height + top_margin  # 与Zone2的间距与Zone2上方的间距相同
-            zone3_width = zone2_width  # 与Zone2宽度相同
-            # 精确计算 Zone3 高度以确保底部边距与顶部边距相同（20px）
-            # 确保所有绿色间距保持不变
-            zone3_height = 350  # 进一步增加高度以完全显示按钮
-            
-            # 使用绝对定位设置Zone3的位置和大小
-            self.zone3_widget.setGeometry(
-                int(zone3_x),
-                int(zone3_y),
-                int(zone3_width),
-                int(zone3_height)
-            )
-            
-            # 计算 Zone4 的位置和大小
-            zone4_x = zone2_x
-            zone4_y = zone3_y + zone3_height + top_margin  # 与 Zone3 的间距与 Zone2 和 Zone3 之间的间距相同
-            zone4_width = zone2_width  # 与 Zone2 宽度相同
-            
-            # Zone4 标题顶部到 Zone4 顶部的间距（即 zone4_layout 的顶部边距）
-            zone4_title_spacing = 20  # setContentsMargins 中设置的顶部边距
-            
-            # 计算字体和高度
-            title_font_metrics = QFontMetrics(self.zone4_title.font())
-            title_height = title_font_metrics.height()
-            
-            # 计算空行高度（与标题字体相同）
-            line_height = title_height
-            
-            port_font_metrics = QFontMetrics(self.port_combo.font())
-            port_label_height = port_font_metrics.height()
-            port_combo_height = 30  # pull-down menu 高度
-            button_height = 45  # refresh_btn 和 connect_btn 高度
-            spacing_height = 10  # 各元素之间的间距
-            
-            # 计算 Zone4 的高度：顶部边距 + 标题 + 空行 + port_widget 高度 + 底部边距
-            # port_widget 高度 = max(port_combo_height, button_height)  # 取较大值
-            port_widget_height = max(port_combo_height, button_height)  # 下拉菜单和按钮的最大高度
-            zone4_height = zone4_title_spacing + title_height + line_height + port_widget_height + zone4_title_spacing  # 顶部边距 + 标题 + 空行 + 内容高度 + 底部边距
-            
-            # 使用绝对定位设置 Zone4 的位置和大小
-            self.zone4_widget.setGeometry(
-                int(zone4_x),
-                int(zone4_y),
-                int(zone4_width),
-                int(zone4_height)
-            )
-            
-            # 计算按钮 widget 的位置和大小（位于 Zone4 下方）
-            buttons_x = zone4_x
-            buttons_y = zone4_y + zone4_height + top_margin  # 与 Zone4 的间距与其他区域之间的间距相同
-            buttons_width = zone4_width  # 与 Zone4 宽度相同
-            buttons_height = 100  # 按钮区域高度
-            
-            # 使用绝对定位设置按钮 widget 的位置和大小
-            self.buttons_widget.setGeometry(
-                int(buttons_x),
-                int(buttons_y),
-                int(buttons_width),
-                int(buttons_height)
-            )
-            
-            # 计算并显示 Zone4 的间距
-            # Zone4 结构：顶部边距 (20px) + title + 空行 (line_height) + port_widget(包含 port_label + spacing + combo + spacing + buttons) + 底部边距 (20px)
-            # port_widget 底部到 Zone4 底部的间距应该等于 zone4_title_spacing (20px)
-            # port_widget 底部位置 = zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height
-            # port_widget 底部到 Zone4 底部 = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
-            port_widget_bottom_to_zone4_bottom = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
-            
+        # 计算Zone3的位置和大小
+        zone3_x = zone2_x
+        zone3_y = top_margin + zone2_height + top_margin  # 与Zone2的间距与Zone2上方的间距相同
+        zone3_width = zone2_width  # 与Zone2宽度相同
+        # 精确计算 Zone3 高度以确保底部边距与顶部边距相同（20px）
+        # 确保所有绿色间距保持不变
+        zone3_height = 350  # 进一步增加高度以完全显示按钮
+        
+        # 使用绝对定位设置Zone3的位置和大小
+        self.zone3_widget.setGeometry(
+            int(zone3_x),
+            int(zone3_y),
+            int(zone3_width),
+            int(zone3_height)
+        )
+        
+        # 计算 Zone4 的位置和大小
+        zone4_x = zone2_x
+        zone4_y = zone3_y + zone3_height + top_margin  # 与 Zone3 的间距与 Zone2 和 Zone3 之间的间距相同
+        zone4_width = zone2_width  # 与 Zone2 宽度相同
+        
+        # Zone4 标题顶部到 Zone4 顶部的间距（即 zone4_layout 的顶部边距）
+        zone4_title_spacing = 20  # setContentsMargins 中设置的顶部边距
+        
+        # 计算字体和高度
+        title_font_metrics = QFontMetrics(self.zone4_title.font())
+        title_height = title_font_metrics.height()
+        
+        # 计算空行高度（与标题字体相同）
+        line_height = title_height
+        
+        port_font_metrics = QFontMetrics(self.port_combo.font())
+        port_label_height = port_font_metrics.height()
+        port_combo_height = 30  # pull-down menu 高度
+        button_height = 45  # refresh_btn 和 connect_btn 高度
+        spacing_height = 10  # 各元素之间的间距
+        
+        # 计算 Zone4 的高度：顶部边距 + 标题 + 空行 + port_widget 高度 + 底部边距
+        # port_widget 高度 = max(port_combo_height, button_height)  # 取较大值
+        port_widget_height = max(port_combo_height, button_height)  # 下拉菜单和按钮的最大高度
+        zone4_height = zone4_title_spacing + title_height + line_height + port_widget_height + zone4_title_spacing  # 顶部边距 + 标题 + 空行 + 内容高度 + 底部边距
+        
+        # 使用绝对定位设置 Zone4 的位置和大小
+        self.zone4_widget.setGeometry(
+            int(zone4_x),
+            int(zone4_y),
+            int(zone4_width),
+            int(zone4_height)
+        )
+        
+        # 计算按钮 widget 的位置和大小（位于 Zone4 下方）
+        buttons_x = zone4_x
+        buttons_y = zone4_y + zone4_height + top_margin  # 与 Zone4 的间距与其他区域之间的间距相同
+        buttons_width = zone4_width  # 与 Zone4 宽度相同
+        buttons_height = 100  # 按钮区域高度
+        
+        # 使用绝对定位设置按钮 widget 的位置和大小
+        self.buttons_widget.setGeometry(
+            int(buttons_x),
+            int(buttons_y),
+            int(buttons_width),
+            int(buttons_height)
+        )
+        
+        # 计算并显示 Zone4 的间距
+        # Zone4 结构：顶部边距 (20px) + title + 空行 (line_height) + port_widget(包含 port_label + spacing + combo + spacing + buttons) + 底部边距 (20px)
+        # port_widget 底部到 Zone4 底部的间距应该等于 zone4_title_spacing (20px)
+        # port_widget 底部位置 = zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height
+        # port_widget 底部到 Zone4 底部 = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
+        port_widget_bottom_to_zone4_bottom = zone4_height - (zone4_title_spacing + title_height + line_height + port_label_height + spacing_height + port_combo_height + spacing_height + button_height)
+        
 
-            
+        
 
-            
-            # 更新标签文本和字体
-            self.zone2_line1_value.setText('00.000')
-            self.zone2_line2_value.setText('00.000')
-            self.zone2_line3_value.setText('0000.0')
-            self.zone2_line4_value.setText('000000')
-            self.zone2_line5_value.setText('00.000')
-            self.zone2_line6_value.setText('00:00:00')
-            
-            # 确保大小策略为Expanding以填充水平空间
-            self.zone2_line1_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line1_value.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line1_unit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            
-            self.zone2_line2_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line2_value.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line2_unit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            
-            self.zone2_line3_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line3_value.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line3_unit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            
-            self.zone2_line4_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line4_value.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line4_unit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            
-            self.zone2_line5_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line5_value.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line5_unit.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            
-            self.zone2_line6_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self.zone2_line6_value.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            
-            # 更新line1下方的空行高度（为line1字体高度的20%，减少50%）
-            if hasattr(self, 'spacer_line1'):
-                font_metrics = QFontMetrics(font)
-                line_height = font_metrics.height()
-                spacer_height = int(line_height * 0.2)
-                # 移除旧的spacer
-                self.zone2_layout.removeItem(self.spacer_line1)
-                # 创建新的spacer
-                self.spacer_line1 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-                # 插入到第一个line widget之后的位置（索引2，因为索引0是标题，索引1是第一个line widget）
-                self.zone2_layout.insertItem(2, self.spacer_line1)
-            
-            # 更新line2下方的空行高度（为line2字体高度的20%，减少50%）
-            if hasattr(self, 'spacer_line2'):
-                font_metrics = QFontMetrics(font)
-                line_height = font_metrics.height()
-                spacer_height = int(line_height * 0.2)
-                # 移除旧的spacer
-                self.zone2_layout.removeItem(self.spacer_line2)
-                # 创建新的spacer
-                self.spacer_line2 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-                # 插入到第二个line widget之后的位置（索引4）
-                self.zone2_layout.insertItem(4, self.spacer_line2)
-            
-            # 更新line3下方的空行高度（为line3字体高度的20%，减少50%）
-            if hasattr(self, 'spacer_line3'):
-                font_metrics = QFontMetrics(font)
-                line_height = font_metrics.height()
-                spacer_height = int(line_height * 0.2)
-                # 移除旧的spacer
-                self.zone2_layout.removeItem(self.spacer_line3)
-                # 创建新的spacer
-                self.spacer_line3 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-                # 插入到第三个line widget之后的位置（索引6）
-                self.zone2_layout.insertItem(6, self.spacer_line3)
-            
-            # 更新line4下方的空行高度（为line4字体高度的20%，减少50%）
-            if hasattr(self, 'spacer_line4'):
-                font_metrics = QFontMetrics(font)
-                line_height = font_metrics.height()
-                spacer_height = int(line_height * 0.2)
-                # 移除旧的spacer
-                self.zone2_layout.removeItem(self.spacer_line4)
-                # 创建新的spacer
-                self.spacer_line4 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-                # 插入到第四个line widget之后的位置（索引8）
-                self.zone2_layout.insertItem(8, self.spacer_line4)
-            
-            # 更新line5下方的空行高度（为line5字体高度的20%，减少50%）
-            if hasattr(self, 'spacer_line5'):
-                font_metrics = QFontMetrics(font)
-                line_height = font_metrics.height()
-                spacer_height = int(line_height * 0.2)
-                # 移除旧的spacer
-                self.zone2_layout.removeItem(self.spacer_line5)
-                # 创建新的spacer
-                self.spacer_line5 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-                # 插入到第五个line widget之后的位置（索引10）
-                self.zone2_layout.insertItem(10, self.spacer_line5)
-            
-            # 更新line6下方的空行高度（为line6字体高度的20%，减少50%）
-            if hasattr(self, 'spacer_line6'):
-                font_metrics = QFontMetrics(font)
-                line_height = font_metrics.height()
-                spacer_height = int(line_height * 0.2)
-                # 移除旧的spacer
-                self.zone2_layout.removeItem(self.spacer_line6)
-                # 创建新的spacer
-                self.spacer_line6 = QSpacerItem(10, spacer_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-                # 插入到第六个line widget之后的位置（索引12）
-                self.zone2_layout.insertItem(12, self.spacer_line6)
-            
-            # 强制更新布局
-            self.zone2_widget.update()
-            self.zone2_widget.repaint()
+        
+        # Zone2 is now empty, so no label updates needed
+        # 强制更新布局
+        self.zone2_widget.update()
+        self.zone2_widget.repaint()
         
         # 定位版本号标签到左下角
         if hasattr(self, 'revision_label'):
@@ -1921,30 +1694,7 @@ class DL24App(QMainWindow):
             A = current / 1000 if current is not None else None
             W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
             
-            # 更新Zone2显示
-            if hasattr(self, 'zone2_line1_value'):
-                v_str = f"{V:.3f}" if V is not None else "00.000"
-                self.zone2_line1_value.setText(v_str)
-            
-            if hasattr(self, 'zone2_line2_value'):
-                a_str = f"{A:.3f}" if A is not None else "00.000"
-                self.zone2_line2_value.setText(a_str)
-            
-            if hasattr(self, 'zone2_line3_value'):
-                wh_str = f"{Wh:.1f}" if Wh is not None else "0000.0"
-                self.zone2_line3_value.setText(wh_str)
-            
-            if hasattr(self, 'zone2_line4_value'):
-                mah_str = f"{mAh:.0f}" if mAh is not None else "000000"
-                self.zone2_line4_value.setText(mah_str)
-            
-            if hasattr(self, 'zone2_line5_value'):
-                w_str = f"{W:.3f}" if W is not None else "00.000"
-                self.zone2_line5_value.setText(w_str)
-            
-            if hasattr(self, 'zone2_line6_value') and timer is not None:
-                time_str = f"{timer['SH']:02d}:{timer['SM']:02d}:{timer['SS']:02d}" if timer is not None else "00:00:00"
-                self.zone2_line6_value.setText(time_str)
+            # Zone2 is now empty, so no display updates needed
             
             # 更新Zone3显示
             if hasattr(self, 'mode_combo') and mode is not None:
