@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 import os
 import hashlib
-from PyQt5.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QComboBox, QPushButton, QGroupBox, QCheckBox,
     QDoubleSpinBox, QGridLayout, QMessageBox, QSizePolicy, QInputDialog,
@@ -11,8 +11,9 @@ from PyQt5.QtWidgets import (
     QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene,
     QTextEdit
 )
-from PyQt5.QtCore import Qt, QTimer, QRect
-from PyQt5.QtGui import QFont, QFontMetrics, QPen, QColor, QPainter
+from PySide6.QtCore import Qt, QTimer, QRect
+from PySide6.QtGui import QFont, QFontMetrics, QPen, QColor, QPainter
+from PySide6.QtGui import QGuiApplication
 import pyqtgraph as pg
 import serial
 import serial.tools.list_ports
@@ -134,7 +135,7 @@ class OverlayWidget(QWidget):
         # 添加Zone1标签
         self.zone1_label = QLabel("实时放电曲线", self)
         self.zone1_label.setAlignment(Qt.AlignCenter)
-        self.zone1_label.setStyleSheet("font-size: 32px; color: black;")
+        self.zone1_label.setStyleSheet("font-size: 26px; color: black;")
         self.zone1_label.setFixedSize(600, 60)  # 增加宽度以容纳20个中文字符
         self.zone1_label.setCursor(Qt.PointingHandCursor)
         self.zone1_label.mouseDoubleClickEvent = self.on_label_double_click
@@ -172,11 +173,23 @@ class OverlayWidget(QWidget):
     
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # 定位标签到Zone1的中心，靠近顶部
+        # 定位标签到Zone1的中心，位于顶部和图表区域顶部的中间
         if self.parent():
             parent_width = self.parent().width()
             label_x = (parent_width - self.zone1_label.width()) // 2
-            label_y = 20  # 距离顶部20像素（增加以适应更大的标签）
+            
+            # 计算标签y坐标：位于Zone1顶部和图表区域顶部的中间，再向上移动25px
+            if self.plot_window:
+                # 获取图表区域的顶部位置
+                plot_y = self.plot_window.y()
+                # 计算中间位置并向上移动25px
+                label_y = (plot_y // 2) - 25
+                # 确保标签不会超出顶部边界
+                label_y = max(0, label_y)
+            else:
+                #  fallback 位置，向上移动25px
+                label_y = max(0, 20 - 25)
+                
             self.zone1_label.move(label_x, label_y)
     
     def paintEvent(self, event):
@@ -265,8 +278,8 @@ class OverlayWidget(QWidget):
 
 class ScaleLineWidget(QWidget):
     # 定义信号，当刻度线被双击时发射
-    from PyQt5.QtCore import pyqtSignal
-    doubleClicked = pyqtSignal()
+    from PySide6.QtCore import Signal
+    doubleClicked = Signal()
     
     def __init__(self, parent=None, height=300, scale_width=300, num_markers=6, min_value=0, max_value=200, color=QColor(255, 165, 0), label="(W)", marker_direction="right", alignment="left", orientation="vertical"):
         super().__init__(parent)
@@ -295,9 +308,9 @@ class ScaleLineWidget(QWidget):
     
     def mouseDoubleClickEvent(self, event):
         # 当双击时直接打开对话框
-        from PyQt5.QtWidgets import QDialog
+        from PySide6.QtWidgets import QDialog
         dialog = ScaleRangeDialog(self.min_value, self.max_value, self.parent())
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             new_min, new_max = dialog.get_values()
             if new_min is not None and new_max is not None:
                 # 更新刻度范围
@@ -338,7 +351,10 @@ class ScaleLineWidget(QWidget):
                 end_y = start_y + actual_height
                 
                 # 绘制垂直刻度线
-                painter.setPen(QPen(self.color, self.line_width))
+                pen = QPen()
+                pen.setColor(self.color)
+                pen.setWidth(self.line_width)
+                painter.setPen(pen)
                 # 对于左指向标记，将刻度线向右移动，为左侧文本留出空间
                 if self.marker_direction == "left":
                     scale_line_x = self.width() - 20  # 刻度线靠近右侧
@@ -347,7 +363,10 @@ class ScaleLineWidget(QWidget):
                 painter.drawLine(scale_line_x, start_y, scale_line_x, end_y)
                 
                 # 绘制圆点在刻度线的顶部和底部，使用与刻度线相同的颜色和大小
-                painter.setPen(QPen(self.color, 2))
+                pen = QPen()
+                pen.setColor(self.color)
+                pen.setWidth(2)
+                painter.setPen(pen)
                 painter.setBrush(self.color)
                 # 顶部圆点，大小与刻度线宽度相同，精确居中在刻度线起点
                 painter.drawEllipse(int(scale_line_x - self.line_width/2), int(start_y - self.line_width/2), self.line_width, self.line_width)
@@ -373,7 +392,10 @@ class ScaleLineWidget(QWidget):
                     marker_y = end_y - (i * actual_height / (self.num_markers - 1))
                     
                     # 绘制标记
-                    painter.setPen(QPen(self.color, self.line_width))  # 使用指定颜色，线宽3
+                    pen = QPen()
+                    pen.setColor(self.color)
+                    pen.setWidth(self.line_width)
+                    painter.setPen(pen)  # 使用指定颜色，线宽3
                     if self.marker_direction == "right":
                         # 绘制标记指向右侧
                         painter.drawLine(scale_line_x, int(marker_y), scale_line_x + self.marker_length, int(marker_y))
@@ -396,7 +418,10 @@ class ScaleLineWidget(QWidget):
                         formatted_value = f"{value:<5.1f}"
                         align_flag = Qt.AlignLeft
                     # 绘制数字
-                    painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
+                    pen = QPen()
+                    pen.setColor(QColor(64, 64, 64))
+                    pen.setWidth(1)
+                    painter.setPen(pen)  # 深灰色，线宽1
                     # 创建文本区域，增加高度和宽度以显示完整数字
                     # 固定文本矩形高度，确保所有数字对齐一致
                     text_rect = QRect(text_x, int(marker_y) - 12, 80, 24)  # 固定尺寸
@@ -408,7 +433,10 @@ class ScaleLineWidget(QWidget):
                 end_x = start_x + actual_width
                 
                 # 绘制水平刻度线
-                painter.setPen(QPen(self.color, self.line_width))
+                pen = QPen()
+                pen.setColor(self.color)
+                pen.setWidth(self.line_width)
+                painter.setPen(pen)
                 # 对于下指向标记，将刻度线上移，为下方文本留出空间
                 if self.marker_direction == "down":
                     scale_line_y = 50  # 刻度线上移
@@ -417,7 +445,10 @@ class ScaleLineWidget(QWidget):
                 painter.drawLine(start_x, scale_line_y, end_x, scale_line_y)
                 
                 # 绘制圆点在刻度线的左侧和右侧，使用与刻度线相同的颜色和大小
-                painter.setPen(QPen(self.color, 2))
+                pen = QPen()
+                pen.setColor(self.color)
+                pen.setWidth(2)
+                painter.setPen(pen)
                 painter.setBrush(self.color)
                 # 左侧圆点，大小与刻度线宽度相同
                 painter.drawEllipse(int(start_x - self.line_width/2), int(scale_line_y - self.line_width/2), self.line_width, self.line_width)
@@ -442,7 +473,10 @@ class ScaleLineWidget(QWidget):
                     marker_x = start_x + (i * actual_width / (self.num_markers - 1))
                     
                     # 绘制标记
-                    painter.setPen(QPen(self.color, self.line_width))  # 使用指定颜色，线宽3
+                    pen = QPen()
+                    pen.setColor(self.color)
+                    pen.setWidth(self.line_width)
+                    painter.setPen(pen)  # 使用指定颜色，线宽3
                     if self.marker_direction == "up":
                         # 绘制标记指向上方
                         painter.drawLine(int(marker_x), scale_line_y, int(marker_x), scale_line_y - self.marker_length)
@@ -461,7 +495,10 @@ class ScaleLineWidget(QWidget):
                     formatted_value = f"{value:^5.1f}"
                     align_flag = Qt.AlignCenter
                     # 绘制数字
-                    painter.setPen(QPen(QColor(64, 64, 64), 1))  # 深灰色，线宽1
+                    pen = QPen()
+                    pen.setColor(QColor(64, 64, 64))
+                    pen.setWidth(1)
+                    painter.setPen(pen)  # 深灰色，线宽1
                     # 创建文本区域，增加高度和宽度以显示完整数字
                     # 固定文本矩形宽度，确保所有数字对齐一致
                     text_rect = QRect(int(marker_x) - 40, int(text_y), 80, 24)  # 固定尺寸
@@ -471,7 +508,7 @@ class ScaleLineWidget(QWidget):
 
 class ScaleRangeDialog(QDialog):
     def __init__(self, current_min, current_max, parent=None):
-        from PyQt5.QtWidgets import QLineEdit, QLabel, QVBoxLayout, QGridLayout, QPushButton, QHBoxLayout
+        from PySide6.QtWidgets import QLineEdit, QLabel, QVBoxLayout, QGridLayout, QPushButton, QHBoxLayout
         super().__init__(parent)
         self.setWindowTitle("设置刻度范围")
         
@@ -642,7 +679,7 @@ class DL24App(QMainWindow):
         self.Iset = 0.00  # 初始化负载电流变量
         
         # 设置窗口大小为屏幕的80%
-        screen = QApplication.desktop().screenGeometry()
+        screen = QGuiApplication.primaryScreen().geometry()
         width = int(screen.width() * 0.8)
         height = int(screen.height() * 0.8)
         self.setGeometry(100, 100, width, height)
@@ -773,7 +810,7 @@ class DL24App(QMainWindow):
         
         # 添加四个空格
         font_metrics = QFontMetrics(cutoff_label.font())
-        space_width = font_metrics.width(" ") * 4
+        space_width = font_metrics.horizontalAdvance(" ") * 4
         space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
         cutoff_layout.addItem(space_spacer)
         
@@ -819,7 +856,7 @@ class DL24App(QMainWindow):
         
         # 添加四个空格
         font_metrics = QFontMetrics(load_label.font())
-        space_width = font_metrics.width(" ") * 4
+        space_width = font_metrics.horizontalAdvance(" ") * 4
         space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
         load_layout.addItem(space_spacer)
         
@@ -846,16 +883,16 @@ class DL24App(QMainWindow):
         
         # 清除数据按钮
         self.clear_data_btn = QPushButton("清除数据")
-        self.clear_data_btn.setMinimumSize(225, 56)
-        self.clear_data_btn.setMaximumSize(225, 56)
-        self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+        self.clear_data_btn.setMinimumSize(270, 67)
+        self.clear_data_btn.setMaximumSize(270, 67)
+        self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 33px; background-color: white; padding: 0px; margin: 0px; font-size: 34px;")
         self.clear_data_btn.setToolTip("清除数据")
         
         # 启动按钮
         self.start_btn = QPushButton("启动")
-        self.start_btn.setMinimumSize(225, 56)
-        self.start_btn.setMaximumSize(225, 56)
-        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+        self.start_btn.setMinimumSize(270, 67)
+        self.start_btn.setMaximumSize(270, 67)
+        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 33px; background-color: white; padding: 0px; margin: 0px; font-size: 34px;")
         self.start_btn.setToolTip("启动")
         self.start_btn.clicked.connect(self.on_onoff_button_clicked)
         
@@ -912,7 +949,7 @@ class DL24App(QMainWindow):
         
         # 添加三个空格
         font_metrics = QFontMetrics(self.port_combo.font())
-        space_width = font_metrics.width(" ") * 3
+        space_width = font_metrics.horizontalAdvance(" ") * 3
         space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
         port_layout.addItem(space_spacer)
         
@@ -1218,7 +1255,7 @@ class DL24App(QMainWindow):
         self.scale_line.setParent(main_widget)
         
         # 4. 第二个刻度线widget（自定义）
-        from PyQt5.QtGui import QColor
+        from PySide6.QtGui import QColor
         self.scale_line2 = ScaleLineWidget(
             main_widget, 
             min_value=0, 
@@ -1243,7 +1280,7 @@ class DL24App(QMainWindow):
         self.scale_line3.setParent(main_widget)
         
         # 6. 第四个刻度线widget（T Scale，水平）
-        from PyQt5.QtGui import QColor
+        from PySide6.QtGui import QColor
         self.scale_line4 = ScaleLineWidget(
             main_widget, 
             scale_width=300,  # 初始宽度
@@ -1409,7 +1446,7 @@ class DL24App(QMainWindow):
                 while font_size < max_font_size:
                     font.setPointSize(font_size)
                     font_metrics = QFontMetrics(font)
-                    text_width = font_metrics.width(text)
+                    text_width = font_metrics.horizontalAdvance(text)
                     if text_width > width * 0.95:  # 留5%的余量
                         return font_size - 1
                     font_size += 1
@@ -1944,11 +1981,11 @@ class DL24App(QMainWindow):
                 if status == 1:
                     # SLStatus=1, 设备运行中
                     self.start_btn.setText("停止")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 33px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 34px;")
                 else:
                     # SLStatus=0, 设备停止
                     self.start_btn.setText("启动")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 33px; background-color: white; padding: 0px; margin: 0px; font-size: 34px;")
         
     def refresh_ports(self):
         self.port_combo.clear()
@@ -2369,7 +2406,7 @@ class DL24App(QMainWindow):
                     print("SetOn command sent successfully")
                     # Immediately update button state to reflect new status
                     self.start_btn.setText("停止")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 33px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 34px;")
                 else:
                     print("Failed to send SetOn command")
             else:
@@ -2379,7 +2416,7 @@ class DL24App(QMainWindow):
                     print("SetOff command sent successfully")
                     # Immediately update button state to reflect new status
                     self.start_btn.setText("启动")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 28px; background-color: white; padding: 0px; margin: 0px; font-size: 28px;")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 33px; background-color: white; padding: 0px; margin: 0px; font-size: 34px;")
                 else:
                     print("Failed to send SetOff command")
         else:
