@@ -1150,20 +1150,22 @@ class DL24App(QMainWindow):
         self.connect_btn = QPushButton("连接")
         self.connect_btn.setMinimumHeight(35)  # 固定高度
         self.connect_btn.setMaximumHeight(35)  # 固定高度
-        self.connect_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # 填充宽度但固定高度
+        self.connect_btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)  # 不填充宽度，使用首选大小
+        self.connect_btn.setMaximumWidth(100)  # 减少20%宽度
         self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
         self.connect_btn.setToolTip("连接到串口")
         self.connect_btn.clicked.connect(self.toggle_connection)
         zone4_row2_col4_layout.addWidget(self.connect_btn)
         
         zone4_row2_layout.addWidget(zone4_row2_col4)
-        zone4_row2_layout.setStretch(3, 32)  # 减少20%宽度 (40 * 0.8 = 32)
+        zone4_row2_layout.setStretch(3, 40)  # 恢复到40%宽度
         
-        # 列5：18%宽度，添加状态图标
+        # 列5：10%宽度，添加状态图标
         zone4_row2_col5 = QWidget()
         zone4_row2_col5_layout = QVBoxLayout(zone4_row2_col5)
         zone4_row2_col5_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
         zone4_row2_col5_layout.setSpacing(0)  # 0间距
+        zone4_row2_col5_layout.setAlignment(Qt.AlignCenter)  # 居中对齐
         
         # TxStatus图标
         self.tx_status_icon = QLabel("●")
@@ -1186,7 +1188,7 @@ class DL24App(QMainWindow):
         zone4_row2_col5_layout.addWidget(self.rx_status_icon)
         
         zone4_row2_layout.addWidget(zone4_row2_col5)
-        zone4_row2_layout.setStretch(4, 18)  # 增加到18%以补偿列4的宽度减少
+        zone4_row2_layout.setStretch(4, 10)  # 恢复到10%宽度
         
         # 设置行高
         zone4_row2_widget = QWidget()
@@ -1952,7 +1954,7 @@ class DL24App(QMainWindow):
         if not self.is_connected:
             # 立即更改按钮为黄色，显示"连接中"
             self.connect_btn.setText("连接中")
-            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: yellow; padding: 0px; margin: 0px;")
+            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: yellow; padding: 0px; margin: 0px; font-size: 12px;")
             
             # 强制UI更新
             QApplication.processEvents()
@@ -1967,7 +1969,7 @@ class DL24App(QMainWindow):
                         QMessageBox.warning(self, "错误", f"串口 {port} 不存在或不可用")
                         # 连接失败，恢复按钮原始状态
                         self.connect_btn.setText("连接")
-                        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+                        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
                         return
                     
                     # 尝试多次打开串口，处理有数据输入的情况
@@ -1997,7 +1999,7 @@ class DL24App(QMainWindow):
                             
                             self.is_connected = True
                             self.connect_btn.setText("断开连接")
-                            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: lightgreen; padding: 0px; margin: 0px;")
+                            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: lightgreen; padding: 0px; margin: 0px; font-size: 12px;")
                             # 更改端口下拉菜单为绿色并禁用
                             self.port_combo.setStyleSheet("border: 1px solid green; background-color: white; padding: 2px;")
                             self.port_combo.setEnabled(False)
@@ -2012,7 +2014,7 @@ class DL24App(QMainWindow):
                     QMessageBox.warning(self, "错误", f"无法连接到串口 {port}: {str(e)}")
                     # 连接失败，恢复按钮原始状态
                     self.connect_btn.setText("连接")
-                    self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+                    self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
         else:
             # 断开串口
             if self.serial_port:
@@ -2024,7 +2026,7 @@ class DL24App(QMainWindow):
                     self.serial_port = None
             self.is_connected = False
             self.connect_btn.setText("连接")
-            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
             # 恢复端口下拉菜单为原始颜色并启用
             self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px;")
             self.port_combo.setEnabled(True)
