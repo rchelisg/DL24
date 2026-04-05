@@ -1028,104 +1028,176 @@ class DL24App(QMainWindow):
         # 创建Zone4的布局为垂直布局
         self.zone4_layout = QVBoxLayout(self.zone4_widget)
         # 设置布局边距
-        self.zone4_layout.setContentsMargins(0, 20, 0, 20)  # 顶部和底部边距都是 20px
+        self.zone4_layout.setContentsMargins(0, 0, 0, 20)  # 顶部边距为0，底部边距为20px
         # 设置垂直间距为0
         self.zone4_layout.setSpacing(0)
         # 设置布局对齐方式为顶部
         self.zone4_layout.setAlignment(Qt.AlignTop)
         
-        # 添加 Zone4 标题
-        self.zone4_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;通信设置</span>')
-        self.zone4_title.setAlignment(Qt.AlignLeft)  # 左对齐
-        self.zone4_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用 Expanding 以填充水平空间
-        self.zone4_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
-        self.zone4_layout.addWidget(self.zone4_title)
+        # 添加新行：3列 5% 90% 5%
+        zone4_row1_layout = QHBoxLayout()
+        zone4_row1_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row1_layout.setSpacing(0)  # 0间距
         
-        # 添加一行间距
-        font_metrics = QFontMetrics(self.zone4_title.font())
-        line_height = font_metrics.height()
-        zone4_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone4_layout.addItem(zone4_spacer)
+        # 列1：5%宽度
+        zone4_row1_col1 = QWidget()
+        zone4_row1_layout.addWidget(zone4_row1_col1)
+        zone4_row1_layout.setStretch(0, 5)  # 5%
         
-        # 添加 Port 标签和下拉菜单
-        port_widget = QWidget()
-        port_layout = QHBoxLayout(port_widget)
-        port_layout.setContentsMargins(0, 0, 0, 0)
-        port_layout.setSpacing(10)
+        # 列2：90%宽度，添加"通信设置"标签
+        zone4_row1_col2 = QWidget()
+        zone4_row1_col2_layout = QHBoxLayout(zone4_row1_col2)
+        zone4_row1_col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row1_col2_layout.setSpacing(0)
+        
+        self.zone4_row1_label = QLabel("通信设置")
+        font = QFont("Microsoft YaHei", 14)  # 雅黑，14px
+        self.zone4_row1_label.setFont(font)
+        self.zone4_row1_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.zone4_row1_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        zone4_row1_col2_layout.addWidget(self.zone4_row1_label)
+        
+        zone4_row1_layout.addWidget(zone4_row1_col2)
+        zone4_row1_layout.setStretch(1, 90)  # 90%
+        
+        # 列3：5%宽度
+        zone4_row1_col3 = QWidget()
+        zone4_row1_layout.addWidget(zone4_row1_col3)
+        zone4_row1_layout.setStretch(2, 5)  # 5%
+        
+        # 设置行高
+        zone4_row1_widget = QWidget()
+        zone4_row1_widget.setLayout(zone4_row1_layout)
+        zone4_row1_widget.setMinimumHeight(30)  # 调整行高以容纳14px字体
+        zone4_row1_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        
+        # 添加新行到Zone4布局
+        self.zone4_layout.addWidget(zone4_row1_widget)
+        
+        # 添加7px间距
+        spacer_below_row1 = QWidget()
+        spacer_below_row1.setMinimumHeight(7)  # 7px高度
+        self.zone4_layout.addWidget(spacer_below_row1)
+        
+        # 添加新行：5列 10% 30% 10% 40% 10%
+        zone4_row2_layout = QHBoxLayout()
+        zone4_row2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row2_layout.setSpacing(0)  # 0间距
+        
+        # 列1：10%宽度
+        zone4_row2_col1 = QWidget()
+        zone4_row2_layout.addWidget(zone4_row2_col1)
+        zone4_row2_layout.setStretch(0, 10)  # 10%
+        
+        # 列2：30%宽度，添加下拉菜单
+        zone4_row2_col2 = QWidget()
+        zone4_row2_col2_layout = QHBoxLayout(zone4_row2_col2)
+        zone4_row2_col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row2_col2_layout.setSpacing(0)
         
         # 端口 标签
         port_label = QLabel("  端口  ")
         port_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        port_layout.addWidget(port_label)
+        port_label.setMinimumHeight(35)  # 固定高度
+        port_label.setMaximumHeight(35)  # 固定高度
+        port_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
+        zone4_row2_col2_layout.addWidget(port_label)
         
         # 下拉菜单
         self.port_combo = QComboBox()
         self.port_combo.setFont(port_label.font())
-        self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px; color: black;")
+        self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 0px; margin: 0px; color: black;")
+        self.port_combo.setMinimumHeight(33)  # 减少5%高度 (35 * 0.95 = 33.25)
+        self.port_combo.setMaximumHeight(33)  # 减少5%高度
+        self.port_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # 填充宽度但固定高度
         self.refresh_serial_ports()
-        port_layout.addWidget(self.port_combo)
+        zone4_row2_col2_layout.addWidget(self.port_combo)
         
-        # 添加三个空格
-        font_metrics = QFontMetrics(self.port_combo.font())
-        space_width = font_metrics.horizontalAdvance(" ") * 3
-        space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        port_layout.addItem(space_spacer)
+        zone4_row2_layout.addWidget(zone4_row2_col2)
+        zone4_row2_layout.setStretch(1, 30)  # 30%
+        
+        # 列3：10%宽度，添加刷新按钮
+        zone4_row2_col3 = QWidget()
+        zone4_row2_col3_layout = QHBoxLayout(zone4_row2_col3)
+        zone4_row2_col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row2_col3_layout.setSpacing(0)
         
         # 刷新按钮
         self.refresh_btn = QPushButton("⟳")
-        self.refresh_btn.setMinimumSize(48, 45)
-        self.refresh_btn.setMaximumSize(48, 45)
-        self.refresh_btn.setStyleSheet("border: 1px solid gray; background-color: #0078D7; font-size: 29px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
+        self.refresh_btn.setMinimumSize(35, 35)  # 固定高度
+        self.refresh_btn.setMaximumSize(35, 35)  # 固定高度
+        self.refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
+        self.refresh_btn.setStyleSheet("border: 1px solid gray; background-color: #0078D7; font-size: 20px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
         self.refresh_btn.clicked.connect(self.refresh_serial_ports)
         self.refresh_btn.setToolTip("Refresh serial ports")
-        port_layout.addWidget(self.refresh_btn)
         
-        # 添加三个空格
-        space_spacer2 = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        port_layout.addItem(space_spacer2)
+        # 添加按下和释放事件处理
+        self.refresh_btn.pressed.connect(self.on_refresh_button_pressed)
+        self.refresh_btn.released.connect(self.on_refresh_button_released)
+        
+        zone4_row2_col3_layout.addWidget(self.refresh_btn)
+        
+        zone4_row2_layout.addWidget(zone4_row2_col3)
+        zone4_row2_layout.setStretch(2, 10)  # 10%
+        
+        # 列4：40%宽度，添加连接按钮
+        zone4_row2_col4 = QWidget()
+        zone4_row2_col4_layout = QHBoxLayout(zone4_row2_col4)
+        zone4_row2_col4_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row2_col4_layout.setSpacing(0)
         
         # 连接按钮
         self.connect_btn = QPushButton("连接")
-        self.connect_btn.setMinimumSize(180, 45)
-        self.connect_btn.setMaximumSize(180, 45)
-        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
+        self.connect_btn.setMinimumHeight(35)  # 固定高度
+        self.connect_btn.setMaximumHeight(35)  # 固定高度
+        self.connect_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # 填充宽度但固定高度
+        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
         self.connect_btn.setToolTip("连接到串口")
         self.connect_btn.clicked.connect(self.toggle_connection)
-        port_layout.addWidget(self.connect_btn)
+        zone4_row2_col4_layout.addWidget(self.connect_btn)
         
-        # 添加三个空格
-        space_spacer3 = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        port_layout.addItem(space_spacer3)
+        zone4_row2_layout.addWidget(zone4_row2_col4)
+        zone4_row2_layout.setStretch(3, 32)  # 减少20%宽度 (40 * 0.8 = 32)
         
-        # 创建垂直布局用于放置TxStatus和RxStatus图标
-        status_widget = QWidget()
-        status_layout = QVBoxLayout(status_widget)
-        status_layout.setSpacing(5)
-        status_layout.setContentsMargins(5, 0, 0, 0)  # 添加5px左边距，将图标向内移动
+        # 列5：18%宽度，添加状态图标
+        zone4_row2_col5 = QWidget()
+        zone4_row2_col5_layout = QVBoxLayout(zone4_row2_col5)
+        zone4_row2_col5_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone4_row2_col5_layout.setSpacing(0)  # 0间距
         
         # TxStatus图标
         self.tx_status_icon = QLabel("●")
-        self.tx_status_icon.setFont(QFont("Arial", 16))
-        self.tx_status_icon.setStyleSheet("color: darkgrey;")
+        self.tx_status_icon.setFont(QFont("Arial", 12))
+        self.tx_status_icon.setStyleSheet("color: darkgrey; padding: 0px; margin: 0px;")
         self.tx_status_icon.setAlignment(Qt.AlignCenter)
-        status_layout.addWidget(self.tx_status_icon)
+        self.tx_status_icon.setMinimumHeight(17)  # 固定高度
+        self.tx_status_icon.setMaximumHeight(17)  # 固定高度
+        self.tx_status_icon.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
+        zone4_row2_col5_layout.addWidget(self.tx_status_icon)
         
         # RxStatus图标
         self.rx_status_icon = QLabel("●")
-        self.rx_status_icon.setFont(QFont("Arial", 16))
-        self.rx_status_icon.setStyleSheet("color: darkgrey;")
+        self.rx_status_icon.setFont(QFont("Arial", 12))
+        self.rx_status_icon.setStyleSheet("color: darkgrey; padding: 0px; margin: 0px;")
         self.rx_status_icon.setAlignment(Qt.AlignCenter)
-        status_layout.addWidget(self.rx_status_icon)
+        self.rx_status_icon.setMinimumHeight(17)  # 固定高度
+        self.rx_status_icon.setMaximumHeight(17)  # 固定高度
+        self.rx_status_icon.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
+        zone4_row2_col5_layout.addWidget(self.rx_status_icon)
         
-        # 设置status_widget的大小
-        status_widget.setMinimumSize(30, 45)
-        status_widget.setMaximumSize(30, 45)
+        zone4_row2_layout.addWidget(zone4_row2_col5)
+        zone4_row2_layout.setStretch(4, 18)  # 增加到18%以补偿列4的宽度减少
         
-        # 将status_widget添加到主布局
-        port_layout.addWidget(status_widget)
+        # 设置行高
+        zone4_row2_widget = QWidget()
+        zone4_row2_widget.setLayout(zone4_row2_layout)
+        zone4_row2_widget.setMinimumHeight(35)  # 调整行高
+        zone4_row2_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
         
-        port_layout.addStretch()  # 添加弹性空间，使内容左对齐
-        self.zone4_layout.addWidget(port_widget)
+        # 添加新行到Zone4布局
+        self.zone4_layout.addWidget(zone4_row2_widget)
+        
+
         
         # 添加新行（3列）在现有行1上方
         # 创建行布局，设置0间距
@@ -1354,6 +1426,18 @@ class DL24App(QMainWindow):
             # 无效输入，保持当前值
             pass
         
+    def on_refresh_button_pressed(self):
+        # 当刷新按钮被按下时
+        self.refresh_btn.setMinimumSize(28, 28)  # 减小尺寸
+        self.refresh_btn.setMaximumSize(33, 33)
+        self.refresh_btn.setStyleSheet("border: 1px solid gray; background-color: #005A9E; font-size: 18px; color: white; padding: 0px; margin: 0px; font-weight: bold;")  # 改变颜色
+        
+    def on_refresh_button_released(self):
+        # 当刷新按钮被释放时
+        self.refresh_btn.setMinimumSize(30, 30)  # 恢复尺寸
+        self.refresh_btn.setMaximumSize(35, 35)
+        self.refresh_btn.setStyleSheet("border: 1px solid gray; background-color: #0078D7; font-size: 20px; color: white; padding: 0px; margin: 0px; font-weight: bold;")  # 恢复颜色
+        
     def refresh_serial_ports(self):
         # 刷新串口列表
         self.port_combo.clear()
@@ -1452,8 +1536,8 @@ class DL24App(QMainWindow):
         # Zone3 title removed, font setting commented out
         # if hasattr(self, 'zone3_title'):
         #     self.zone3_title.setFont(zone2_title_font)
-        if hasattr(self, 'zone4_title'):
-            self.zone4_title.setFont(zone2_title_font)
+        if hasattr(self, 'zone4_row1_label'):
+            self.zone4_row1_label.setFont(zone2_title_font)
         
         # 计算Zone2的高度：标题高度
         # 计算标题高度
@@ -1549,10 +1633,10 @@ class DL24App(QMainWindow):
         zone4_width = zone2_width  # 与 Zone2 宽度相同
         
         # Zone4 标题顶部到 Zone4 顶部的间距（即 zone4_layout 的顶部边距）
-        zone4_title_spacing = 20  # setContentsMargins 中设置的顶部边距
+        zone4_title_spacing = 0  # setContentsMargins 中设置的顶部边距
         
         # 计算字体和高度
-        title_font_metrics = QFontMetrics(self.zone4_title.font())
+        title_font_metrics = QFontMetrics(self.zone4_row1_label.font())
         title_height = title_font_metrics.height()
         
         # 计算空行高度（与标题字体相同）
@@ -1564,10 +1648,12 @@ class DL24App(QMainWindow):
         button_height = 45  # refresh_btn 和 connect_btn 高度
         spacing_height = 10  # 各元素之间的间距
         
-        # 计算 Zone4 的高度：顶部边距 + 标题 + 空行 + port_widget 高度 + 底部边距
+        # 计算 Zone4 的高度：顶部边距 + 标题 + 7px间距 + 新行高度 + port_widget 高度 + 底部边距
         # port_widget 高度 = max(port_combo_height, button_height)  # 取较大值
         port_widget_height = max(port_combo_height, button_height)  # 下拉菜单和按钮的最大高度
-        zone4_height = zone4_title_spacing + title_height + line_height + port_widget_height + zone4_title_spacing  # 顶部边距 + 标题 + 空行 + 内容高度 + 底部边距
+        row2_height = 35  # 新行的高度
+        spacing_below_row1 = 7  # 7px间距
+        zone4_height = zone4_title_spacing + title_height + spacing_below_row1 + row2_height + port_widget_height + zone4_title_spacing  # 顶部边距 + 标题 + 7px间距 + 新行 + 内容高度 + 底部边距
         
         # 使用绝对定位设置 Zone4 的位置和大小
         self.zone4_widget.setGeometry(
