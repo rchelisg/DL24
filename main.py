@@ -726,149 +726,267 @@ class DL24App(QMainWindow):
         # 创建Zone3的布局为垂直布局
         self.zone3_layout = QVBoxLayout(self.zone3_widget)
         # 设置布局边距
-        self.zone3_layout.setContentsMargins(0, 20, 0, 20)  # 顶部和底部边距都是 20px
+        self.zone3_layout.setContentsMargins(0, 0, 0, 20)  # 顶部0px边距，底部边距都是 20px
         # 设置垂直间距为0
         self.zone3_layout.setSpacing(0)
         # 设置布局对齐方式为顶部
         self.zone3_layout.setAlignment(Qt.AlignTop)
         
-        # 添加 Zone3 标题
-        self.zone3_title = QLabel('<span style="color: grey;">&nbsp;&nbsp;&nbsp;参数设置</span>')
-        self.zone3_title.setAlignment(Qt.AlignLeft)  # 左对齐
-        self.zone3_title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)  # 使用 Expanding 以填充水平空间
-        self.zone3_title.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")  # 移除内边距和外边距
-        self.zone3_layout.addWidget(self.zone3_title)
+        # 添加新行（3列）在Zone3顶部
+        new_row_layout = QHBoxLayout()
+        new_row_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        new_row_layout.setSpacing(0)  # 0间距
         
-        # 添加一行间距
-        font_metrics = QFontMetrics(self.zone3_title.font())
-        line_height = font_metrics.height()
-        zone3_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone3_layout.addItem(zone3_spacer)
+        # 列1：5%宽度
+        col1 = QWidget()
+        new_row_layout.addWidget(col1)
+        new_row_layout.setStretch(0, 5)  # 5%
         
-        # 添加 Mode 标签和下拉菜单
-        mode_widget = QWidget()
-        mode_layout = QHBoxLayout(mode_widget)
-        mode_layout.setContentsMargins(0, 0, 0, 0)
-        mode_layout.setSpacing(5)
+        # 列2：剩余宽度（90%），添加"参数设置"标签
+        col2 = QWidget()
+        col2_layout = QHBoxLayout(col2)
+        col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        col2_layout.setSpacing(0)
         
-        # 下拉菜单
-        self.mode_combo = QComboBox()
-        self.mode_combo.setFont(self.zone3_title.font())
-        self.mode_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px; color: black;")
-        self.mode_combo.addItem("CC Constant current", 1)
-        self.mode_combo.addItem("CV Constant voltage", 2)
-        self.mode_combo.addItem("CP Constant power", 3)
-        self.mode_combo.addItem("CR Constant resistance", 4)
-        self.mode_combo.setCurrentIndex(0)  # 默认值为 1
+        label = QLabel("参数设置")
+        font = QFont("Microsoft YaHei", 14)  # 雅黑，14px
+        label.setFont(font)
+        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        col2_layout.addWidget(label)
+        
+        new_row_layout.addWidget(col2)
+        new_row_layout.setStretch(1, 90)  # 90%
+        
+        # 列3：5%宽度
+        col3 = QWidget()
+        new_row_layout.addWidget(col3)
+        new_row_layout.setStretch(2, 5)  # 5%
+        
+        # 设置行高
+        new_row_widget = QWidget()
+        new_row_widget.setLayout(new_row_layout)
+        new_row_widget.setMinimumHeight(30)  # 调整行高以容纳14px字体
+        new_row_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        
+        # 添加新行到Zone3布局
+        self.zone3_layout.addWidget(new_row_widget)
+        
+        # 添加行下方的7px间距
+        spacer_below_row1 = QWidget()
+        spacer_below_row1.setMinimumHeight(7)  # 默认7px高度
+        self.zone3_layout.addWidget(spacer_below_row1)
+        
+        # 添加 row2：3列 10% 30% 60%
+        row2_layout = QHBoxLayout()
+        row2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row2_layout.setSpacing(0)  # 0间距
+        
+        # 列1：10%宽度
+        row2_col1 = QWidget()
+        row2_layout.addWidget(row2_col1)
+        row2_layout.setStretch(0, 10)  # 10%
+        
+        # 列2：30%宽度，添加"放电模式"标签
+        row2_col2 = QWidget()
+        row2_col2_layout = QHBoxLayout(row2_col2)
+        row2_col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row2_col2_layout.setSpacing(0)
+        
+        row2_label = QLabel("放电模式")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        row2_label.setFont(font)
+        row2_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        row2_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        row2_col2_layout.addWidget(row2_label)
+        
+        row2_layout.addWidget(row2_col2)
+        row2_layout.setStretch(1, 30)  # 30%
+        
+        # 列3：60%宽度，添加下拉列表
+        row2_col3 = QWidget()
+        row2_col3_layout = QHBoxLayout(row2_col3)
+        row2_col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row2_col3_layout.setSpacing(0)
+        
+        # 添加下拉列表
+        self.row2_combo = QComboBox()
+        font = QFont("SimHei", 12)  # 黑体，12px
+        self.row2_combo.setFont(font)
+        self.row2_combo.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
+        self.row2_combo.addItem("CC - 恒电流放电", 1)
+        self.row2_combo.addItem("CV - 恒电压放电", 2)
+        self.row2_combo.addItem("CP - 恒功率放电", 3)
+        self.row2_combo.addItem("CR - 恒电阻放电", 4)
+        self.row2_combo.setCurrentIndex(0)  # 默认值为CC
         # 禁用 CR 模式选项
-        self.mode_combo.model().item(3).setEnabled(False)
-        self.mode_combo.currentIndexChanged.connect(self.on_mode_changed)
+        self.row2_combo.model().item(3).setEnabled(False)
+        self.row2_combo.currentIndexChanged.connect(self.on_mode_changed)
+        row2_col3_layout.addWidget(self.row2_combo)
         
-        # 放电模式 标签
-        mode_label = QLabel("  放电模式  ")
-        mode_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        # 使用与Zone3标题相同的字体
-        mode_label.setFont(self.zone3_title.font())
-        mode_layout.addWidget(mode_label)
+        row2_layout.addWidget(row2_col3)
+        row2_layout.setStretch(2, 60)  # 60%
         
-        mode_layout.addWidget(self.mode_combo)
+        # 设置行高
+        row2_widget = QWidget()
+        row2_widget.setLayout(row2_layout)
+        row2_widget.setMinimumHeight(25)  # 调整行高以容纳12px字体
+        row2_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
         
-        mode_layout.addStretch()  # 添加弹性空间，使内容左对齐
-        self.zone3_layout.addWidget(mode_widget)
+        # 添加行到Zone3布局
+        self.zone3_layout.addWidget(row2_widget)
         
-        # 添加一行间距
-        font_metrics = QFontMetrics(self.mode_combo.font())
-        line_height = int(font_metrics.height() * 1.5)
-        mode_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone3_layout.addItem(mode_spacer)
+        # 添加 row3：5列 10% 30% 25% 10% 25%
+        row3_layout = QHBoxLayout()
+        row3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row3_layout.setSpacing(0)  # 0间距
         
-        # 添加 Cutoff Voltage 标签和输入框
-        cutoff_widget = QWidget()
-        cutoff_layout = QHBoxLayout(cutoff_widget)
-        cutoff_layout.setContentsMargins(0, 0, 0, 0)
-        cutoff_layout.setSpacing(5)
+        # 列1：10%宽度
+        row3_col1 = QWidget()
+        row3_layout.addWidget(row3_col1)
+        row3_layout.setStretch(0, 10)  # 10%
         
-        # 输入框
-        self.cutoff_voltage_entry = QLineEdit()
-        self.cutoff_voltage_entry.setText("0.00")
-        self.cutoff_voltage_entry.setPlaceholderText("0.00")
-        self.cutoff_voltage_entry.setFixedWidth(120)
-        self.cutoff_voltage_entry.setAlignment(Qt.AlignCenter)
-        self.cutoff_voltage_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px; font-family: 'Microsoft YaHei'; color: black;")
-        self.cutoff_voltage_entry.textChanged.connect(self.on_cutoff_voltage_changed)
+        # 列2：30%宽度，添加"截止电压"标签
+        row3_col2 = QWidget()
+        row3_col2_layout = QHBoxLayout(row3_col2)
+        row3_col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row3_col2_layout.setSpacing(0)
         
-        # 截止电压 标签
-        cutoff_label = QLabel("  截止电压  ")
-        cutoff_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        cutoff_label.setMinimumWidth(100)
-        cutoff_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        # 使用与Zone3标题相同的字体
-        cutoff_label.setFont(self.zone3_title.font())
-        cutoff_layout.addWidget(cutoff_label)
+        row3_label = QLabel("截止电压")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        row3_label.setFont(font)
+        row3_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        row3_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        row3_col2_layout.addWidget(row3_label)
         
-        cutoff_layout.addWidget(self.cutoff_voltage_entry)
+        row3_layout.addWidget(row3_col2)
+        row3_layout.setStretch(1, 30)  # 30%
         
-        # 添加四个空格
-        font_metrics = QFontMetrics(cutoff_label.font())
-        space_width = font_metrics.horizontalAdvance(" ") * 4
-        space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        cutoff_layout.addItem(space_spacer)
+        # 列3：25%宽度，添加数据输入框
+        row3_col3 = QWidget()
+        row3_col3_layout = QHBoxLayout(row3_col3)
+        row3_col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row3_col3_layout.setSpacing(0)
         
-        # 添加设置按钮
-        self.vset_button = QPushButton("   设置   ")
-        self.vset_button.setMinimumSize(180, 45)
-        self.vset_button.setMaximumSize(180, 45)
-        self.vset_button.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        cutoff_layout.addWidget(self.vset_button)
+        # 添加数据输入框
+        self.row3_entry = QLineEdit()
+        font = QFont("SimHei", 12)  # 黑体，12px
+        self.row3_entry.setFont(font)
+        self.row3_entry.setText("0.00")
+        self.row3_entry.setPlaceholderText("0.00")
+        self.row3_entry.setAlignment(Qt.AlignCenter)
+        self.row3_entry.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
+        self.row3_entry.textChanged.connect(self.on_cutoff_voltage_changed)
+        row3_col3_layout.addWidget(self.row3_entry)
         
-        cutoff_layout.addStretch()  # 添加弹性空间，使内容左对齐
-        self.zone3_layout.addWidget(cutoff_widget)
+        row3_layout.addWidget(row3_col3)
+        row3_layout.setStretch(2, 25)  # 25%
         
-        # 添加一行间距
-        cutoff_spacer = QSpacerItem(10, line_height, QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.zone3_layout.addItem(cutoff_spacer)
+        # 列4：10%宽度，添加"V"标签
+        row3_col4 = QWidget()
+        row3_col4_layout = QHBoxLayout(row3_col4)
+        row3_col4_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row3_col4_layout.setSpacing(0)
         
-        # 添加 Load Current 标签和输入框
-        load_widget = QWidget()
-        load_layout = QHBoxLayout(load_widget)
-        load_layout.setContentsMargins(0, 0, 0, 0)
-        load_layout.setSpacing(5)
+        row3_unit_label = QLabel("V")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        row3_unit_label.setFont(font)
+        row3_unit_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        row3_unit_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        row3_col4_layout.addWidget(row3_unit_label)
         
-        # 输入框
-        self.load_current_entry = QLineEdit()
-        self.load_current_entry.setText("0.00")
-        self.load_current_entry.setPlaceholderText("0.00")
-        self.load_current_entry.setFixedWidth(120)
-        self.load_current_entry.setAlignment(Qt.AlignCenter)
-        self.load_current_entry.setStyleSheet("border: 1px solid gray; background-color: white; padding: 3px; font-family: 'Microsoft YaHei'; color: black;")
-        self.load_current_entry.textChanged.connect(self.on_load_current_changed)
+        row3_layout.addWidget(row3_col4)
+        row3_layout.setStretch(3, 10)  # 10%
         
-        # 负载电流 标签
-        load_label = QLabel("  负载电流  ")
-        load_label.setStyleSheet("border: none; background-color: transparent; padding: 0; margin: 0;")
-        load_label.setMinimumWidth(100)
-        load_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        # 使用与Zone3标题相同的字体
-        load_label.setFont(self.zone3_title.font())
-        load_layout.addWidget(load_label)
+        # 列5：25%宽度
+        row3_col5 = QWidget()
+        row3_layout.addWidget(row3_col5)
+        row3_layout.setStretch(4, 25)  # 25%
         
-        load_layout.addWidget(self.load_current_entry)
+        # 设置行高
+        row3_widget = QWidget()
+        row3_widget.setLayout(row3_layout)
+        row3_widget.setMinimumHeight(25)  # 调整行高以容纳12px字体
+        row3_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
         
-        # 添加四个空格
-        font_metrics = QFontMetrics(load_label.font())
-        space_width = font_metrics.horizontalAdvance(" ") * 4
-        space_spacer = QSpacerItem(space_width, 10, QSizePolicy.Fixed, QSizePolicy.Minimum)
-        load_layout.addItem(space_spacer)
+        # 添加行到Zone3布局
+        self.zone3_layout.addWidget(row3_widget)
         
-        # 添加设置按钮
-        self.iset_button = QPushButton("   设置   ")
-        self.iset_button.setMinimumSize(180, 45)
-        self.iset_button.setMaximumSize(180, 45)
-        self.iset_button.setStyleSheet("border: 1px solid gray; border-radius: 22px; background-color: white; padding: 0px; margin: 0px;")
-        load_layout.addWidget(self.iset_button)
+        # 添加 row4：5列 10% 30% 25% 10% 25%
+        row4_layout = QHBoxLayout()
+        row4_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row4_layout.setSpacing(0)  # 0间距
         
-        load_layout.addStretch()  # 添加弹性空间，使内容左对齐
-        self.zone3_layout.addWidget(load_widget)
+        # 列1：10%宽度
+        row4_col1 = QWidget()
+        row4_layout.addWidget(row4_col1)
+        row4_layout.setStretch(0, 10)  # 10%
+        
+        # 列2：30%宽度，添加"负载电流"标签
+        row4_col2 = QWidget()
+        row4_col2_layout = QHBoxLayout(row4_col2)
+        row4_col2_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row4_col2_layout.setSpacing(0)
+        
+        row4_label = QLabel("负载电流")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        row4_label.setFont(font)
+        row4_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        row4_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        row4_col2_layout.addWidget(row4_label)
+        
+        row4_layout.addWidget(row4_col2)
+        row4_layout.setStretch(1, 30)  # 30%
+        
+        # 列3：25%宽度，添加数据输入框
+        row4_col3 = QWidget()
+        row4_col3_layout = QHBoxLayout(row4_col3)
+        row4_col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row4_col3_layout.setSpacing(0)
+        
+        # 添加数据输入框
+        self.row4_entry = QLineEdit()
+        font = QFont("SimHei", 12)  # 黑体，12px
+        self.row4_entry.setFont(font)
+        self.row4_entry.setText("0.00")
+        self.row4_entry.setPlaceholderText("0.00")
+        self.row4_entry.setAlignment(Qt.AlignCenter)
+        self.row4_entry.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
+        self.row4_entry.textChanged.connect(self.on_load_current_changed)
+        row4_col3_layout.addWidget(self.row4_entry)
+        
+        row4_layout.addWidget(row4_col3)
+        row4_layout.setStretch(2, 25)  # 25%
+        
+        # 列4：10%宽度，添加"A"标签
+        row4_col4 = QWidget()
+        row4_col4_layout = QHBoxLayout(row4_col4)
+        row4_col4_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row4_col4_layout.setSpacing(0)
+        
+        row4_unit_label = QLabel("A")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        row4_unit_label.setFont(font)
+        row4_unit_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        row4_unit_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        row4_col4_layout.addWidget(row4_unit_label)
+        
+        row4_layout.addWidget(row4_col4)
+        row4_layout.setStretch(3, 10)  # 10%
+        
+        # 列5：25%宽度
+        row4_col5 = QWidget()
+        row4_layout.addWidget(row4_col5)
+        row4_layout.setStretch(4, 25)  # 25%
+        
+        # 设置行高
+        row4_widget = QWidget()
+        row4_widget.setLayout(row4_layout)
+        row4_widget.setMinimumHeight(25)  # 调整行高以容纳12px字体
+        row4_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        
+        # 添加行到Zone3布局
+        self.zone3_layout.addWidget(row4_widget)
         
         # 4. 显示 widget (Zone 4)
         self.zone4_widget = QWidget(main_widget)
@@ -1204,7 +1322,7 @@ class DL24App(QMainWindow):
         
     def on_mode_changed(self, index):
         # 当下拉菜单选择改变时，更新 mode 变量
-        self.mode = self.mode_combo.currentData()
+        self.mode = self.row2_combo.currentData()
         
     def on_cutoff_voltage_changed(self, text):
         # 当截止电压输入框改变时，更新 Vset 变量
@@ -1213,10 +1331,10 @@ class DL24App(QMainWindow):
             if 0 <= value <= 50:
                 self.Vset = value
                 # 保留两位小数
-                self.cutoff_voltage_entry.setText(f"{value:.2f}")
+                self.row3_entry.setText(f"{value:.2f}")
             else:
                 # 超出范围，恢复为之前值
-                self.cutoff_voltage_entry.setText(f"{self.Vset:.2f}")
+                self.row3_entry.setText(f"{self.Vset:.2f}")
         except ValueError:
             # 无效输入，保持当前值
             pass
@@ -1228,10 +1346,10 @@ class DL24App(QMainWindow):
             if 0 <= value <= 50:
                 self.Iset = value
                 # 保留两位小数
-                self.load_current_entry.setText(f"{value:.2f}")
+                self.row4_entry.setText(f"{value:.2f}")
             else:
                 # 超出范围，恢复为之前值
-                self.load_current_entry.setText(f"{self.Iset:.2f}")
+                self.row4_entry.setText(f"{self.Iset:.2f}")
         except ValueError:
             # 无效输入，保持当前值
             pass
@@ -1331,8 +1449,9 @@ class DL24App(QMainWindow):
         zone2_title_font = QFont("SimHei", 14, QFont.Light)  # 使用黑体字体
         
         # 更新Zone3和Zone4的标题字体以匹配Zone2的字体
-        if hasattr(self, 'zone3_title'):
-            self.zone3_title.setFont(zone2_title_font)
+        # Zone3 title removed, font setting commented out
+        # if hasattr(self, 'zone3_title'):
+        #     self.zone3_title.setFont(zone2_title_font)
         if hasattr(self, 'zone4_title'):
             self.zone4_title.setFont(zone2_title_font)
         
@@ -1414,7 +1533,7 @@ class DL24App(QMainWindow):
         zone3_width = zone2_width  # 与Zone2宽度相同
         # 精确计算 Zone3 高度以确保底部边距与顶部边距相同（20px）
         # 确保所有绿色间距保持不变
-        zone3_height = 350  # 进一步增加高度以完全显示按钮
+        zone3_height = 120  # 调整高度以正好容纳四行内容
         
         # 使用绝对定位设置Zone3的位置和大小
         self.zone3_widget.setGeometry(
