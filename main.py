@@ -696,6 +696,7 @@ class DL24App(QMainWindow):
         
         # 主布局
         main_widget = QWidget()
+        main_widget.setStyleSheet("border: none;")  # 移除边框
         self.setCentralWidget(main_widget)
         
         # 1. 显示widget (Zone 1)
@@ -722,7 +723,7 @@ class DL24App(QMainWindow):
         
         # 3. 显示 widget (Zone 3)
         self.zone3_widget = QWidget(main_widget)
-        self.zone3_widget.setStyleSheet("background-color: white;")
+
         # 设置 Zone3 的字体大小为原来的 1.875 倍 (1.5 * 1.25)
         zone3_font = QFont("Courier New", 26, QFont.Light)
         self.zone3_widget.setFont(zone3_font)
@@ -772,7 +773,7 @@ class DL24App(QMainWindow):
         new_row_widget = QWidget()
         new_row_widget.setLayout(new_row_layout)
         new_row_widget.setMinimumHeight(30)  # 调整行高以容纳14px字体
-        new_row_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        new_row_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 添加新行到Zone3布局
         self.zone3_layout.addWidget(new_row_widget)
@@ -818,7 +819,7 @@ class DL24App(QMainWindow):
         self.row2_combo = QComboBox()
         font = QFont("SimHei", 12)  # 黑体，12px
         self.row2_combo.setFont(font)
-        self.row2_combo.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
+        self.row2_combo.setStyleSheet("border: none; padding: 2px; color: black;")
         self.row2_combo.addItem("CC - 恒电流放电", 1)
         self.row2_combo.setCurrentIndex(0)  # 默认值为CC
         # 禁用下拉列表，只允许CC模式
@@ -832,7 +833,7 @@ class DL24App(QMainWindow):
         row2_widget = QWidget()
         row2_widget.setLayout(row2_layout)
         row2_widget.setMinimumHeight(25)  # 调整行高以容纳12px字体
-        row2_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        row2_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 添加行到Zone3布局
         self.zone3_layout.addWidget(row2_widget)
@@ -876,7 +877,7 @@ class DL24App(QMainWindow):
         self.row3_entry.setText("0.00")
         self.row3_entry.setPlaceholderText("0.00")
         self.row3_entry.setAlignment(Qt.AlignCenter)
-        self.row3_entry.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
+        self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
         self.row3_entry.textChanged.connect(self.on_cutoff_voltage_changed)
         row3_col3_layout.addWidget(self.row3_entry)
         
@@ -909,9 +910,12 @@ class DL24App(QMainWindow):
         self.ButtonVset = QPushButton("设置")
         font = QFont("SimHei", 12)  # 黑体，12px
         self.ButtonVset.setFont(font)
-        self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 15px; background-color: white; padding: 2px 15px; margin: 0px; font-size: 12px;")
-        self.ButtonVset.setFixedHeight(27)  # Reduced by 10% from 30px
+        self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;")
+        self.ButtonVset.setFixedHeight(20)  # Reduced by 25% from 27px
         self.ButtonVset.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # Connect pressed and released signals for visual feedback
+        self.ButtonVset.pressed.connect(lambda: self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 10px; background-color: yellow; padding: 2px 15px; margin: 0px; font-size: 12px;"))
+        self.ButtonVset.released.connect(lambda: self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;"))
         row3_col5_layout.addStretch()
         row3_col5_layout.addWidget(self.ButtonVset)
         row3_col5_layout.addStretch()
@@ -923,7 +927,7 @@ class DL24App(QMainWindow):
         row3_widget = QWidget()
         row3_widget.setLayout(row3_layout)
         row3_widget.setMinimumHeight(25)  # 调整行高以容纳12px字体
-        row3_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        row3_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 添加行到Zone3布局
         self.zone3_layout.addWidget(row3_widget)
@@ -967,7 +971,7 @@ class DL24App(QMainWindow):
         self.row4_entry.setText("0.00")
         self.row4_entry.setPlaceholderText("0.00")
         self.row4_entry.setAlignment(Qt.AlignCenter)
-        self.row4_entry.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
+        self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
         self.row4_entry.textChanged.connect(self.on_load_current_changed)
         row4_col3_layout.addWidget(self.row4_entry)
         
@@ -1000,9 +1004,12 @@ class DL24App(QMainWindow):
         self.ButtonIset = QPushButton("设置")
         font = QFont("SimHei", 12)  # 黑体，12px
         self.ButtonIset.setFont(font)
-        self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 15px; background-color: white; padding: 2px 15px; margin: 0px; font-size: 12px;")
-        self.ButtonIset.setFixedHeight(27)  # Reduced by 10% from 30px
+        self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;")
+        self.ButtonIset.setFixedHeight(20)  # Reduced by 25% from 27px
         self.ButtonIset.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # Connect pressed and released signals for visual feedback
+        self.ButtonIset.pressed.connect(lambda: self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 10px; background-color: yellow; padding: 2px 15px; margin: 0px; font-size: 12px;"))
+        self.ButtonIset.released.connect(lambda: self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;"))
         row4_col5_layout.addStretch()
         row4_col5_layout.addWidget(self.ButtonIset)
         row4_col5_layout.addStretch()
@@ -1014,13 +1021,14 @@ class DL24App(QMainWindow):
         row4_widget = QWidget()
         row4_widget.setLayout(row4_layout)
         row4_widget.setMinimumHeight(25)  # 调整行高以容纳12px字体
-        row4_widget.setStyleSheet("border: 1px solid #E0E0E0;")  # 非常浅的灰色边框
+        row4_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 添加行到Zone3布局
         self.zone3_layout.addWidget(row4_widget)
         
         # 4. 显示 widget (Zone 4)
         self.zone4_widget = QWidget(main_widget)
+        self.zone4_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 清除数据按钮
         self.clear_data_btn = QPushButton("清除数据")
@@ -1197,7 +1205,7 @@ class DL24App(QMainWindow):
         zone4_row1_widget = QWidget()
         zone4_row1_widget.setLayout(zone4_row1_layout)
         zone4_row1_widget.setMinimumHeight(30)  # 调整行高以容纳14px字体
-        # 移除边框
+        zone4_row1_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 添加新行到Zone4布局
         self.zone4_layout.addWidget(zone4_row1_widget)
@@ -1227,7 +1235,7 @@ class DL24App(QMainWindow):
         
         # 下拉菜单
         self.port_combo = QComboBox()
-        self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 0px; margin: 0px; color: black; font-size: 16px;")
+        self.port_combo.setStyleSheet("border: none; background-color: white; padding: 0px; margin: 0px; color: black; font-size: 16px;")
         self.port_combo.setMinimumHeight(33)  # 减少5%高度 (35 * 0.95 = 33.25)
         self.port_combo.setMaximumHeight(33)  # 减少5%高度
         self.port_combo.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)  # 宽度适应内容，高度固定
@@ -1250,7 +1258,7 @@ class DL24App(QMainWindow):
         self.refresh_btn.setMinimumSize(35, 35)  # 固定高度
         self.refresh_btn.setMaximumSize(35, 35)  # 固定高度
         self.refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
-        self.refresh_btn.setStyleSheet("border: 1px solid gray; background-color: #0078D7; font-size: 20px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
+        self.refresh_btn.setStyleSheet("border: none; background-color: #0078D7; font-size: 20px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
         self.refresh_btn.clicked.connect(self.refresh_serial_ports)
         self.refresh_btn.setToolTip("Refresh serial ports")
         
@@ -1275,7 +1283,7 @@ class DL24App(QMainWindow):
         self.connect_btn.setMaximumHeight(35)  # 固定高度
         self.connect_btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)  # 不填充宽度，使用首选大小
         self.connect_btn.setMaximumWidth(100)  # 减少20%宽度
-        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
+        self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
         self.connect_btn.setToolTip("连接到串口")
         self.connect_btn.clicked.connect(self.toggle_connection)
         zone4_row2_col4_layout.addWidget(self.connect_btn)
@@ -1317,7 +1325,7 @@ class DL24App(QMainWindow):
         zone4_row2_widget = QWidget()
         zone4_row2_widget.setLayout(zone4_row2_layout)
         zone4_row2_widget.setMinimumHeight(35)  # 调整行高
-        # 移除边框
+        zone4_row2_widget.setStyleSheet("border: none;")  # 移除边框
         
         # 添加新行到Zone4布局
         self.zone4_layout.addWidget(zone4_row2_widget)
@@ -2017,10 +2025,6 @@ class DL24App(QMainWindow):
         import datetime
         current_time = datetime.datetime.now().strftime('%M:%S')
         print(f"MainLoop [{current_time}]")
-        output = f"MainLoop - {current_time}\n"
-        # 写入文件以验证执行
-        with open('mainloop.log', 'a') as f:
-            f.write(output)
         
         # 使用PX100协议查询设备数据
         if self.is_connected:
@@ -2153,7 +2157,7 @@ class DL24App(QMainWindow):
                 if A is not None:
                     self.zone2_value_labels[1].setText(f"{A:06.3f}")  # 电流 (A) - 00.000格式
                 if Wh is not None:
-                    self.zone2_value_labels[2].setText(f"{Wh:05.1f}")  # 功耗 (Wh) - 0000.0格式
+                    self.zone2_value_labels[2].setText(f"{Wh:06.1f}")  # 功耗 (Wh) - 0000.0格式
                 if mAh is not None:
                     self.zone2_value_labels[3].setText(f"{mAh:05.0f}")  # 容量 (mAh) - 00000格式
                 if W is not None:
@@ -2196,7 +2200,7 @@ class DL24App(QMainWindow):
         if not self.is_connected:
             # 立即更改按钮为黄色，显示"连接中"
             self.connect_btn.setText("连接中")
-            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: yellow; padding: 0px; margin: 0px; font-size: 12px;")
+            self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: yellow; padding: 0px; margin: 0px; font-size: 12px;")
             
             # 强制UI更新
             QApplication.processEvents()
@@ -2211,7 +2215,7 @@ class DL24App(QMainWindow):
                         QMessageBox.warning(self, "错误", f"串口 {port} 不存在或不可用")
                         # 连接失败，恢复按钮原始状态
                         self.connect_btn.setText("连接")
-                        self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
+                        self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
                         return
                     
                     # 尝试多次打开串口，处理有数据输入的情况
@@ -2240,9 +2244,9 @@ class DL24App(QMainWindow):
                             
                             self.is_connected = True
                             self.connect_btn.setText("断开连接")
-                            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: lightgreen; padding: 0px; margin: 0px; font-size: 16px;")
+                            self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: lightgreen; padding: 0px; margin: 0px; font-size: 16px;")
                             # 更改端口下拉菜单为绿色并禁用
-                            self.port_combo.setStyleSheet("border: 1px solid green; background-color: white; padding: 2px; font-size: 16px;")
+                            self.port_combo.setStyleSheet("border: none; background-color: white; padding: 2px; font-size: 16px;")
                             self.port_combo.setEnabled(False)
                             break
                         except Exception as e:
@@ -2255,7 +2259,7 @@ class DL24App(QMainWindow):
                     QMessageBox.warning(self, "错误", f"无法连接到串口 {port}: {str(e)}")
                     # 连接失败，恢复按钮原始状态
                     self.connect_btn.setText("连接")
-                    self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
+                    self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
         else:
             # 断开串口
             if self.serial_port:
@@ -2267,9 +2271,9 @@ class DL24App(QMainWindow):
                     self.serial_port = None
             self.is_connected = False
             self.connect_btn.setText("连接")
-            self.connect_btn.setStyleSheet("border: 1px solid gray; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
+            self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
             # 恢复端口下拉菜单为原始颜色并启用
-            self.port_combo.setStyleSheet("border: 1px solid gray; background-color: white; padding: 2px; font-size: 16px;")
+            self.port_combo.setStyleSheet("border: none; background-color: white; padding: 2px; font-size: 16px;")
             self.port_combo.setEnabled(True)
             
     def update_data(self):
