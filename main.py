@@ -161,7 +161,7 @@ class OverlayWidget(QWidget):
         # 设置对话框样式
         dialog.setStyleSheet("QInputDialog { background-color: white; } QLabel { color: black; } QLineEdit { background-color: white; color: black; border: 1px solid gray; }")
         
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             new_text = dialog.textValue()
             if new_text:
                 # 限制输入长度：最多20个中文字符或40个英文字母
@@ -658,6 +658,10 @@ class DL24App(QMainWindow):
         self.mode = 0  # 0: CC, 1: CV, 2: CP
         self.is_parameter_editable = False
         self.serial_buffer = bytearray()  # 用于存储串口接收到的数据
+        # 全局时间变量
+        self.H = 0
+        self.M = 0
+        self.S = 0
         
     def init_ui(self):
         # 初始化数据结构（在方法开始时就初始化，确保在任何使用之前都已存在）
@@ -753,6 +757,7 @@ class DL24App(QMainWindow):
         label.setFont(font)
         label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        label.setStyleSheet("color: grey;")  # 设置文字颜色为灰色
         col2_layout.addWidget(label)
         
         new_row_layout.addWidget(col2)
@@ -815,13 +820,9 @@ class DL24App(QMainWindow):
         self.row2_combo.setFont(font)
         self.row2_combo.setStyleSheet("border: 1px solid #E0E0E0; background-color: white; padding: 2px; color: black;")
         self.row2_combo.addItem("CC - 恒电流放电", 1)
-        self.row2_combo.addItem("CV - 恒电压放电", 2)
-        self.row2_combo.addItem("CP - 恒功率放电", 3)
-        self.row2_combo.addItem("CR - 恒电阻放电", 4)
         self.row2_combo.setCurrentIndex(0)  # 默认值为CC
-        # 禁用 CR 模式选项
-        self.row2_combo.model().item(3).setEnabled(False)
-        self.row2_combo.currentIndexChanged.connect(self.on_mode_changed)
+        # 禁用下拉列表，只允许CC模式
+        self.row2_combo.setEnabled(False)
         row2_col3_layout.addWidget(self.row2_combo)
         
         row2_layout.addWidget(row2_col3)
@@ -898,8 +899,23 @@ class DL24App(QMainWindow):
         row3_layout.addWidget(row3_col4)
         row3_layout.setStretch(3, 10)  # 10%
         
-        # 列5：25%宽度
+        # 列5：25%宽度，添加设置按钮
         row3_col5 = QWidget()
+        row3_col5_layout = QHBoxLayout(row3_col5)
+        row3_col5_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row3_col5_layout.setSpacing(0)
+        
+        # 添加设置按钮
+        self.ButtonVset = QPushButton("设置")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        self.ButtonVset.setFont(font)
+        self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 15px; background-color: white; padding: 2px 15px; margin: 0px; font-size: 12px;")
+        self.ButtonVset.setFixedHeight(27)  # Reduced by 10% from 30px
+        self.ButtonVset.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        row3_col5_layout.addStretch()
+        row3_col5_layout.addWidget(self.ButtonVset)
+        row3_col5_layout.addStretch()
+        
         row3_layout.addWidget(row3_col5)
         row3_layout.setStretch(4, 25)  # 25%
         
@@ -974,8 +990,23 @@ class DL24App(QMainWindow):
         row4_layout.addWidget(row4_col4)
         row4_layout.setStretch(3, 10)  # 10%
         
-        # 列5：25%宽度
+        # 列5：25%宽度，添加设置按钮
         row4_col5 = QWidget()
+        row4_col5_layout = QHBoxLayout(row4_col5)
+        row4_col5_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        row4_col5_layout.setSpacing(0)
+        
+        # 添加设置按钮
+        self.ButtonIset = QPushButton("设置")
+        font = QFont("SimHei", 12)  # 黑体，12px
+        self.ButtonIset.setFont(font)
+        self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 15px; background-color: white; padding: 2px 15px; margin: 0px; font-size: 12px;")
+        self.ButtonIset.setFixedHeight(27)  # Reduced by 10% from 30px
+        self.ButtonIset.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        row4_col5_layout.addStretch()
+        row4_col5_layout.addWidget(self.ButtonIset)
+        row4_col5_layout.addStretch()
+        
         row4_layout.addWidget(row4_col5)
         row4_layout.setStretch(4, 25)  # 25%
         
@@ -1151,6 +1182,7 @@ class DL24App(QMainWindow):
         self.zone4_row1_label.setFont(font)
         self.zone4_row1_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.zone4_row1_label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        self.zone4_row1_label.setStyleSheet("color: grey;")  # 设置文字颜色为灰色
         zone4_row1_col2_layout.addWidget(self.zone4_row1_label)
         
         zone4_row1_layout.addWidget(zone4_row1_col2)
@@ -1201,7 +1233,7 @@ class DL24App(QMainWindow):
         self.port_combo.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)  # 宽度适应内容，高度固定
         self.refresh_serial_ports()
         
-        # 直接添加下拉菜单，使其左对齐
+        # 左对齐下拉菜单
         zone4_row2_col2_layout.addWidget(self.port_combo)
         
         zone4_row2_layout.addWidget(zone4_row2_col2)
@@ -1314,6 +1346,7 @@ class DL24App(QMainWindow):
         label.setFont(font)
         label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         label.setContentsMargins(5, 0, 0, 0)  # 仅左侧5px边距，无上下边距
+        label.setStyleSheet("color: grey;")  # 设置文字颜色为灰色
         col2_layout.addWidget(label)
         
         new_row_layout.addWidget(col2)
@@ -1556,7 +1589,7 @@ class DL24App(QMainWindow):
         
         # 使用自定义对话框同时设置最小值和最大值
         dialog = AxisRangeDialog(axis_type, current_min, current_max, self)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             new_min, new_max = dialog.get_values()
             
             # 计算留白，确保标度数字不被切掉
@@ -1584,7 +1617,7 @@ class DL24App(QMainWindow):
         
         # 使用自定义对话框同时设置最小值和最大值
         dialog = ScaleRangeDialog(current_min, current_max, self)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             new_min, new_max = dialog.get_values()
             if new_min is not None and new_max is not None:
                 # 更新刻度范围
@@ -1930,25 +1963,21 @@ class DL24App(QMainWindow):
         self.scale_line4.setGeometry(int(scale4_x), int(scale4_y), int(scale4_width + 2 * self.scale_line4.padding), 100)
         
     def init_timer(self):
-        print("Initializing timers...")
         # 数据更新定时器
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_data)
         self.update_timer.start(1000)  # 1秒更新一次
-        print("Update timer started")
         
         # 曲线显示定时器
         self.plot_timer = QTimer()
         self.plot_timer.timeout.connect(self.update_plot)
         self.plot_timer.start(5000)  # 5秒更新一次
-        print("Plot timer started")
         
         # 主循环定时器 - 设置为最高优先级
         self.main_loop_timer = QTimer()
         self.main_loop_timer.setTimerType(Qt.PreciseTimer)  # 使用精确定时器
         self.main_loop_timer.timeout.connect(self.MainLoop)
         self.main_loop_timer.start(1000)  # 1秒更新一次
-        print("Main loop timer started")
         
         # 时间计数
         self.start_time = time.time()
@@ -1961,15 +1990,14 @@ class DL24App(QMainWindow):
         if index != self.mode:
             self.mode = index
             # 这里应该调用setMode函数
-            print(f"设置工作模式: {index}")
-            
+        pass
+    
     def set_current(self, value):
         # 这里应该调用setCurrent函数
-        print(f"设置负载电流: {value}")
-        
-    def set_vcut(self, value):
-        # 这里应该调用setVcut函数
-        print(f"设置截止电压: {value}")
+        pass
+    
+    def set_voltage(self, value):
+        # 这里应该调用setVoltage函数
         # 更新Vcut曲线
         self.update_vcut_curve(value)
         
@@ -1985,31 +2013,129 @@ class DL24App(QMainWindow):
         pass
         
     def MainLoop(self):
-        # 主循环函数，每1000ms执行一次
+        # 主循环函数
         import datetime
         current_time = datetime.datetime.now().strftime('%M:%S')
+        print(f"MainLoop [{current_time}]")
         output = f"MainLoop - {current_time}\n"
-        print(output)
         # 写入文件以验证执行
         with open('mainloop.log', 'a') as f:
             f.write(output)
         
         # 使用PX100协议查询设备数据
         if self.is_connected:
-            # 读取状态和数据
-            status = self.ReadLStatus()
-            voltage = self.ReadSmV()
-            current = self.ReadSmA()
-            timer = self.ReadSTimer()
-            capacity = self.ReadSmAh()
-            energy = self.ReadSmWh()
-            # 新增查询
-            iset = self.ReadIset()
-            vset = self.ReadVset()
-            tset = self.ReadTset()
-            mode = self.ReadMode()
+            import time
+            
+            # 初始化QueryTimedOut标志
+            if not hasattr(self, 'QueryTimedOut'):
+                self.QueryTimedOut = 0
+            
+            # 设置参数
+            TTimeOut = 0.1  # 100ms
+            TDelay = 0.001  # 1ms
+            
+            # 1. 开始查询序列前的准备
+            # 1.1 清除接收缓冲区
+            self.serial_buffer.clear()
+            # 1.2 设置QueryTimedOut标志为0
+            self.QueryTimedOut = 0
+            
+            # 2. 运行10个查询
+            queries = [
+                ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),  # 第一次ReadLStatus，响应将被忽略
+                ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),  # 第二次ReadLStatus，使用此响应
+                ('ReadSmV', b'\xb1\xb2\x11\x00\x00\xb6', 0x11),
+                ('ReadSmA', b'\xb1\xb2\x12\x00\x00\xb6', 0x12),
+                ('ReadSTimer', b'\xb1\xb2\x13\x00\x00\xb6', 0x13),
+                ('ReadSmAh', b'\xb1\xb2\x14\x00\x00\xb6', 0x14),
+                ('ReadSmWh', b'\xb1\xb2\x15\x00\x00\xb6', 0x15),
+                ('ReadMosT', b'\xb1\xb2\x16\x00\x00\xb6', 0x16),
+                ('ReadIset', b'\xb1\xb2\x17\x00\x00\xb6', 0x17),
+                ('ReadVset', b'\xb1\xb2\x18\x00\x00\xb6', 0x18),
+                ('ReadTset', b'\xb1\xb2\x19\x00\x00\xb6', 0x19)  # 一次ReadTset
+            ]
+            
+            # 存储查询结果
+            results = {}
+            
+            # 跟踪ReadLStatus的次数
+            readlstatus_count = 0
+            
+            for query_name, command, third_byte in queries:
+                # 2.2.1 清除接收缓冲区
+                self.serial_buffer.clear()
+                # 2.2.2 发送查询
+                self.send_data(command)
+                # 2.2.3 等待响应，超时时间为TTimeOut
+                start_time = time.time()
+                response = None
+                while time.time() - start_time < TTimeOut:
+                    if hasattr(self.serial_port, 'in_waiting'):
+                        if self.serial_port.in_waiting > 0:
+                            data = self.serial_port.read(self.serial_port.in_waiting)
+                            self.serial_buffer.extend(data)
+                            # 2.2.4 扫描并搜索头部，验证头部和尾部
+                            header = b'\xca\xcb'
+                            trailer = b'\xce\xcf'
+                            header_index = self.serial_buffer.find(header)
+                            while header_index != -1:
+                                if len(self.serial_buffer) >= header_index + 7:
+                                    if self.serial_buffer[header_index + 5:header_index + 7] == trailer:
+                                        # 找到有效的响应
+                                        response = self.serial_buffer[header_index:header_index + 7]
+                                        break
+                                header_index = self.serial_buffer.find(header, header_index + 1)
+                            if response:
+                                break
+                    # 小延迟避免忙等
+                    time.sleep(0.01)
+                
+                # 处理响应
+                if response:
+                    # 2.2.4.2 有效响应，填充全局变量
+                    if query_name == 'ReadLStatus':
+                        readlstatus_count += 1
+                        # 忽略第一次ReadLStatus的响应，只使用第二次的
+                        if readlstatus_count == 2:
+                            results['status'] = response[4]
+                    elif query_name == 'ReadSmV':
+                        results['voltage'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSmA':
+                        results['current'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSTimer':
+                        # 提取时间数据 (SH, SM, SS)
+                        self.H = response[2]  # 小时
+                        self.M = response[3]  # 分钟
+                        self.S = response[4]  # 秒
+                        results['timer'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSmAh':
+                        results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSmWh':
+                        results['energy'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadMosT':
+                        results['most'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadIset':
+                        results['iset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadVset':
+                        results['vset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadTset':
+                        results['tset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                else:
+                    # 2.2.4.1 超时，设置QueryTimedOut标志为查询的第三个字节
+                    self.QueryTimedOut = third_byte
+                    print(f"Query timed out: 0x{third_byte:02X}")
+                
+                # 2.2.5 延迟TDelay并移至下一个查询
+                time.sleep(TDelay)
             
             # 分配变量
+            energy = results.get('energy')
+            capacity = results.get('capacity')
+            iset = results.get('iset')
+            vset = results.get('vset')
+            voltage = results.get('voltage')
+            current = results.get('current')
+            
             Wh = energy / 1000 if energy is not None else None
             mAh = capacity if capacity is not None else None
             Iset = iset / 100 if iset is not None else None
@@ -2021,31 +2147,20 @@ class DL24App(QMainWindow):
             W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
             
             # 更新Zone2显示标签
-            if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 5:
+            if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 6:
                 if V is not None:
-                    self.zone2_value_labels[0].setText(f"{V:.3f}")  # 电压 (V)
+                    self.zone2_value_labels[0].setText(f"{V:06.3f}")  # 电压 (V) - 00.000格式
                 if A is not None:
-                    self.zone2_value_labels[1].setText(f"{A:.3f}")  # 电流 (A)
+                    self.zone2_value_labels[1].setText(f"{A:06.3f}")  # 电流 (A) - 00.000格式
                 if Wh is not None:
-                    self.zone2_value_labels[2].setText(f"{Wh:.1f}")  # 功耗 (Wh)
+                    self.zone2_value_labels[2].setText(f"{Wh:05.1f}")  # 功耗 (Wh) - 0000.0格式
                 if mAh is not None:
-                    self.zone2_value_labels[3].setText(f"{mAh:.0f}")  # 容量 (mAh)
+                    self.zone2_value_labels[3].setText(f"{mAh:05.0f}")  # 容量 (mAh) - 00000格式
                 if W is not None:
-                    self.zone2_value_labels[4].setText(f"{W:.2f}")  # 功率 (W)
-            
-            # 更新Zone3显示
-            if hasattr(self, 'row2_combo') and mode is not None:
-                # Update Mode combo box based on read value
-                # Map mode values to combo box indexes
-                mode_map = {
-                    1: 0,  # CC
-                    2: 1,  # CV
-                    3: 2,  # CP
-                    4: 3   # CR
-                }
-                if mode in mode_map:
-                    self.row2_combo.setCurrentIndex(mode_map[mode])
-                    self.mode = mode
+                    self.zone2_value_labels[4].setText(f"{W:06.2f}")  # 功率 (W) - 000.00格式
+                # 显示时间 HH:MM:SS
+                time_str = f"{self.H:02d}:{self.M:02d}:{self.S:02d}"
+                self.zone2_value_labels[5].setText(time_str)
             
             if hasattr(self, 'row3_entry') and Vset is not None:
                 # Update Vset entry box
@@ -2057,15 +2172,10 @@ class DL24App(QMainWindow):
                 self.row4_entry.setText(f"{Iset:.2f}")
                 self.Iset = Iset
             
-            # 打印查询结果
-            if timer is not None:
-                print(f"Timer: {timer['SH']}:{timer['SM']}:{timer['SS']}")
-            if tset is not None:
-                print(f"Tset: {tset['SHset']}:{tset['SMset']}:{tset['SSset']}")
-            if mode is not None:
-                print(f"Mode: {mode}")
+
             
             # 根据SLStatus更新OnOff按钮状态
+            status = results.get('status')
             if status is not None:
                 if status == 1:
                     # SLStatus=1, 设备运行中
@@ -2112,7 +2222,6 @@ class DL24App(QMainWindow):
                             port_name = port
                             if not port.startswith('COM'):
                                 port_name = 'COM' + port
-                            print(f"Attempt {attempt+1} to connect to {port_name}")
                             
                             # 对于所有端口，使用标准参数
                             self.serial_port = serial.Serial(
@@ -2184,27 +2293,13 @@ class DL24App(QMainWindow):
         # 检查时间是否超过最大值
         if current_time > self.time_max:
             self.time_max += 60  # 自动增加1分钟
-        
-        # 读取串口数据并显示在调试窗口
-        if self.is_connected and self.serial_port:
-            try:
-                # 读取可用数据
-                        if hasattr(self.serial_port, 'in_waiting'):
-                            if self.serial_port.in_waiting > 0:
-                                # 正在接收数据
-                                self.update_rx_status(True)
-                                data = self.serial_port.read(self.serial_port.in_waiting)
-                                # 添加数据到缓冲区
-                                self.serial_buffer.extend(data)
-                                # 短暂延迟后恢复状态
-                        QTimer.singleShot(500, lambda: self.update_rx_status(False))
-            except Exception as e:
-                pass
     
     def send_data(self, data):
         # 发送数据到串口
         if self.is_connected and self.serial_port:
             try:
+                # 清除接收缓冲区
+                self.serial_buffer.clear()
                 # 正在发送数据
                 self.update_tx_status(True)
                 self.serial_port.write(data)
@@ -2212,7 +2307,6 @@ class DL24App(QMainWindow):
                 QTimer.singleShot(500, lambda: self.update_tx_status(False))
                 return True
             except Exception as e:
-                print(f"发送数据失败: {e}")
                 self.update_tx_status(False)
                 return False
         return False
@@ -2233,11 +2327,56 @@ class DL24App(QMainWindow):
             else:
                 self.rx_status_icon.setStyleSheet("color: darkgrey;")
     
+    def process_serial_data(self):
+        """Process serial data continuously to detect 36-byte frames"""
+        if self.is_connected and self.serial_port:
+            try:
+                # 读取可用数据
+                if hasattr(self.serial_port, 'in_waiting'):
+                    if self.serial_port.in_waiting > 0:
+                        # 正在接收数据
+                        self.update_rx_status(True)
+                        data = self.serial_port.read(self.serial_port.in_waiting)
+                        # 添加数据到缓冲区
+                        self.serial_buffer.extend(data)
+                        # 处理串行缓冲区，检测数据帧
+                        self.process_serial_buffer()
+                        # 短暂延迟后恢复状态
+                        QTimer.singleShot(500, lambda: self.update_rx_status(False))
+            except Exception as e:
+                pass
+    
+    def process_serial_buffer(self):
+        """Process serial buffer to detect and handle 36-byte data frames"""
+        buffer = self.serial_buffer
+        frame_start = b'\xff\x55\x01'
+        frame_length = 36
+        
+        # 搜索帧起始序列
+        start_index = buffer.find(frame_start)
+        
+        while start_index != -1:
+            # 检测到头部，显示header...
+            print("header...", end="")
+            # 检查是否有足够的数据来完成帧
+            if len(buffer) >= start_index + frame_length:
+                # 提取完整帧
+                frame = buffer[start_index:start_index + frame_length]
+                # 输出状态帧信息
+                print("status frame")
+                # 从缓冲区中移除已处理的帧
+                self.serial_buffer = buffer[start_index + frame_length:]
+                # 继续搜索下一个帧
+                buffer = self.serial_buffer
+                start_index = buffer.find(frame_start)
+            else:
+                # 没有足够的数据，保留当前缓冲区
+                break
+    
     # PX100 Protocol Command Functions
     def SetOff(self):
         """Send SetOff command"""
         if not self.is_connected:
-            print("Port is not open, cannot send SetOff command")
             return False
         command = b'\xb1\xb2\x01\x00\x00\xb6'
         return self.send_data(command)
@@ -2245,7 +2384,6 @@ class DL24App(QMainWindow):
     def SetOn(self):
         """Send SetOn command"""
         if not self.is_connected:
-            print("Port is not open, cannot send SetOn command")
             return False
         command = b'\xb1\xb2\x01\x01\x00\xb6'
         return self.send_data(command)
@@ -2253,7 +2391,6 @@ class DL24App(QMainWindow):
     def SetIset(self, current):
         """Send SetIset command with current value"""
         if not self.is_connected:
-            print("Port is not open, cannot send SetIset command")
             return False
         # current format: integer and decimal (00..99)
         integer_part = int(current)
@@ -2264,7 +2401,6 @@ class DL24App(QMainWindow):
     def SetVset(self, voltage):
         """Send SetVset command with voltage value"""
         if not self.is_connected:
-            print("Port is not open, cannot send SetVset command")
             return False
         # voltage format: integer and decimal (00..99)
         integer_part = int(voltage)
@@ -2275,7 +2411,6 @@ class DL24App(QMainWindow):
     def SetTset(self, time):
         """Send SetTset command with time value"""
         if not self.is_connected:
-            print("Port is not open, cannot send SetTset command")
             return False
         # time as 16-bit unsigned integer
         time_value = int(time)
@@ -2287,7 +2422,6 @@ class DL24App(QMainWindow):
     def SetResetCounters(self):
         """Send SetResetCounters command"""
         if not self.is_connected:
-            print("Port is not open, cannot send SetResetCounters command")
             return False
         command = b'\xb1\xb2\x05\x00\x00\xb6'
         return self.send_data(command)
@@ -2296,11 +2430,12 @@ class DL24App(QMainWindow):
     def _send_query(self, command, expected_response_length):
         """Send query and wait for response with timeout and retry"""
         if not self.is_connected:
-            print("Port is not open, cannot send query")
             return None
         
         max_retries = 3
-        timeout = 0.05  # 50ms timeout
+        timeout = 0.005  # 5ms timeout
+        header = b'\xca\xcb'
+        trailer = b'\xce\xcf'
         
         for attempt in range(max_retries):
             # Clear serial buffer
@@ -2308,6 +2443,10 @@ class DL24App(QMainWindow):
             
             # Send command
             if not self.send_data(command):
+                # Wait 1ms before next try if not the last attempt
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(0.001)  # 1ms delay between retries
                 continue
             
             # Wait for response
@@ -2319,30 +2458,41 @@ class DL24App(QMainWindow):
                         data = self.serial_port.read(self.serial_port.in_waiting)
                         self.serial_buffer.extend(data)
                         
-                        # Check if we have enough data
-                        if len(self.serial_buffer) >= expected_response_length:
-                            return self.serial_buffer[:expected_response_length]
+                        # Search for header in the buffer
+                        header_index = self.serial_buffer.find(header)
+                        while header_index != -1:
+                            # Check if there's enough data for the full response
+                            if len(self.serial_buffer) >= header_index + expected_response_length:
+                                # Check if trailer is at the correct position
+                                trailer_position = header_index + expected_response_length - 2
+                                if self.serial_buffer[trailer_position:trailer_position + 2] == trailer:
+                                    # Found valid response
+                                    return self.serial_buffer[header_index:header_index + expected_response_length]
+                            # Continue searching for next header
+                            header_index = self.serial_buffer.find(header, header_index + 1)
                 # Small delay to avoid busy waiting
                 time.sleep(0.01)
+            
+            # Wait 1ms before next try if not the last attempt
+            if attempt < max_retries - 1:
+                time.sleep(0.001)  # 1ms delay between retries
         
         return None
     
     def ReadLStatus(self):
         """Read SLStatus"""
         if not self.is_connected:
-            print("Port is not open, cannot read LStatus")
             return None
         command = b'\xb1\xb2\x10\x00\x00\xb6'
-        response = self._send_query(command, 5)  # Expected response length: 5 bytes
+        response = self._send_query(command, 7)  # Expected response length: 7 bytes
         
-        if response and len(response) == 5 and response[0] == 0xca and response[1] == 0xcb:
+        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
             return response[4]  # SLStatus = xx
         return None
     
     def ReadSmV(self):
         """Read SmV"""
         if not self.is_connected:
-            print("Port is not open, cannot read SmV")
             return None
         command = b'\xb1\xb2\x11\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2356,7 +2506,6 @@ class DL24App(QMainWindow):
     def ReadSmA(self):
         """Read SmA"""
         if not self.is_connected:
-            print("Port is not open, cannot read SmA")
             return None
         command = b'\xb1\xb2\x12\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2370,7 +2519,6 @@ class DL24App(QMainWindow):
     def ReadSTimer(self):
         """Read STimer (SH, SM, SS)"""
         if not self.is_connected:
-            print("Port is not open, cannot read STimer")
             return None
         command = b'\xb1\xb2\x13\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2387,7 +2535,6 @@ class DL24App(QMainWindow):
     def ReadSmAh(self):
         """Read SmAh"""
         if not self.is_connected:
-            print("Port is not open, cannot read SmAh")
             return None
         command = b'\xb1\xb2\x14\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2401,7 +2548,6 @@ class DL24App(QMainWindow):
     def ReadSmWh(self):
         """Read SmWh"""
         if not self.is_connected:
-            print("Port is not open, cannot read SmWh")
             return None
         command = b'\xb1\xb2\x15\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2415,7 +2561,6 @@ class DL24App(QMainWindow):
     def ReadMosT(self):
         """Read SMosT"""
         if not self.is_connected:
-            print("Port is not open, cannot read MosT")
             return None
         command = b'\xb1\xb2\x16\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2429,7 +2574,6 @@ class DL24App(QMainWindow):
     def ReadIset(self):
         """Read SIset"""
         if not self.is_connected:
-            print("Port is not open, cannot read Iset")
             return None
         command = b'\xb1\xb2\x17\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2443,7 +2587,6 @@ class DL24App(QMainWindow):
     def ReadVset(self):
         """Read SVset"""
         if not self.is_connected:
-            print("Port is not open, cannot read Vset")
             return None
         command = b'\xb1\xb2\x18\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2457,7 +2600,6 @@ class DL24App(QMainWindow):
     def ReadTset(self):
         """Read Tset (SHset, SMset, SSset)"""
         if not self.is_connected:
-            print("Port is not open, cannot read Tset")
             return None
         command = b'\xb1\xb2\x19\x00\x00\xb6'
         response = self._send_query(command, 7)  # Expected response length: 7 bytes
@@ -2471,18 +2613,7 @@ class DL24App(QMainWindow):
             }
         return None
     
-    def ReadMode(self):
-        """Read current mode"""
-        if not self.is_connected:
-            print("Port is not open, cannot read Mode")
-            return None
-        # Assuming mode command is 0x20 based on sequential pattern
-        command = b'\xb1\xb2\x20\x00\x00\xb6'
-        response = self._send_query(command, 5)  # Expected response length: 5 bytes
-        
-        if response and len(response) == 5 and response[0] == 0xca and response[1] == 0xcb:
-            return response[4]  # Mode value
-        return None
+
     
     def on_onoff_button_clicked(self):
         """Handle OnOff button click"""
@@ -2492,24 +2623,16 @@ class DL24App(QMainWindow):
                 # Send SetOn command
                 success = self.SetOn()
                 if success:
-                    print("SetOn command sent successfully")
                     # Immediately update button state to reflect new status
                     self.start_btn.setText("停止")
                     self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
-                else:
-                    print("Failed to send SetOn command")
             else:
                 # Send SetOff command
                 success = self.SetOff()
                 if success:
-                    print("SetOff command sent successfully")
                     # Immediately update button state to reflect new status
                     self.start_btn.setText("启动")
                     self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
-                else:
-                    print("Failed to send SetOff command")
-        else:
-            print("Port is not open, cannot send command")
     
 
             
@@ -2565,4 +2688,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = DL24App()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

@@ -6,7 +6,7 @@ if __name__ == "__main__":
         app = main.QApplication([])
         window = main.DL24App()
         window.show()
-        app.exec_()
+        app.exec()
     except Exception as e:
         print(f"Error: {e}")
         print(traceback.format_exc())

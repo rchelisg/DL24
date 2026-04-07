@@ -26,5 +26,5 @@ if __name__ == "__main__":
     print("Test app created, entering event loop...")
     # 运行5秒后退出
     QTimer.singleShot(5000, app.quit)
-    app.exec_()
+    app.exec()
     print("Test completed")
