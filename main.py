@@ -1062,7 +1062,7 @@ class DL24App(QMainWindow):
         zone6_row1_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
         zone6_row1_layout.setSpacing(0)  # 0间距
         
-        # 列1：20%宽度，添加复选框和细线
+        # 列1：20%宽度，添加复选框、细线和标签
         zone6_row1_col1 = QWidget()
         zone6_row1_col1_layout = QHBoxLayout(zone6_row1_col1)
         zone6_row1_col1_layout.setContentsMargins(0, 0, 0, 0)
@@ -1074,10 +1074,18 @@ class DL24App(QMainWindow):
         zone6_row1_col1_layout.setStretch(0, 1)
         
         # 复选框
-        checkbox1 = QCheckBox()
-        checkbox1.setMinimumSize(15, 15)
-        checkbox1.setMaximumSize(15, 15)
-        zone6_row1_col1_layout.addWidget(checkbox1)
+        self.CheckboxV = QCheckBox()
+        self.CheckboxV.setMinimumSize(15, 15)
+        self.CheckboxV.setMaximumSize(15, 15)
+        # 设置初始样式（选中状态）
+        self.CheckboxV.setStyleSheet("background-color: blue; color: black;")
+        self.CheckboxV.setChecked(True)  # 默认选中
+        # 连接状态变化信号
+        self.CheckboxV.stateChanged.connect(lambda state: 
+            self.CheckboxV.setStyleSheet("background-color: blue; color: black;") if state else 
+            self.CheckboxV.setStyleSheet("background-color: lightgrey; color: black;")
+        )
+        zone6_row1_col1_layout.addWidget(self.CheckboxV)
         
         # 细线
         line1 = QFrame()
@@ -1085,19 +1093,27 @@ class DL24App(QMainWindow):
         line1.setFrameShadow(QFrame.Sunken)
         line1.setMinimumHeight(2)
         line1.setMaximumHeight(2)
+        line1.setStyleSheet("background-color: blue;")
         line1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         zone6_row1_col1_layout.addWidget(line1)
-        zone6_row1_col1_layout.setStretch(2, 6)
+        zone6_row1_col1_layout.setStretch(2, 4)
+        
+        # 标签
+        label1 = QLabel("V")
+        label1.setStyleSheet("color: blue;")
+        label1.setAlignment(Qt.AlignCenter)
+        zone6_row1_col1_layout.addWidget(label1)
+        zone6_row1_col1_layout.setStretch(3, 1)
         
         # 右侧间隔（12.5%）
         right_spacer1 = QWidget()
         zone6_row1_col1_layout.addWidget(right_spacer1)
-        zone6_row1_col1_layout.setStretch(3, 1)
+        zone6_row1_col1_layout.setStretch(4, 1)
         
         zone6_row1_layout.addWidget(zone6_row1_col1)
         zone6_row1_layout.setStretch(0, 20)  # 20%
         
-        # 列2：20%宽度，添加复选框和细线
+        # 列2：20%宽度，添加复选框、细线和标签
         zone6_row1_col2 = QWidget()
         zone6_row1_col2_layout = QHBoxLayout(zone6_row1_col2)
         zone6_row1_col2_layout.setContentsMargins(0, 0, 0, 0)
@@ -1109,10 +1125,18 @@ class DL24App(QMainWindow):
         zone6_row1_col2_layout.setStretch(0, 1)
         
         # 复选框
-        checkbox2 = QCheckBox()
-        checkbox2.setMinimumSize(15, 15)
-        checkbox2.setMaximumSize(15, 15)
-        zone6_row1_col2_layout.addWidget(checkbox2)
+        self.CheckboxW = QCheckBox()
+        self.CheckboxW.setMinimumSize(15, 15)
+        self.CheckboxW.setMaximumSize(15, 15)
+        # 设置初始样式（选中状态）
+        self.CheckboxW.setStyleSheet("background-color: orange; color: black;")
+        self.CheckboxW.setChecked(True)  # 默认选中
+        # 连接状态变化信号
+        self.CheckboxW.stateChanged.connect(lambda state: 
+            self.CheckboxW.setStyleSheet("background-color: orange; color: black;") if state else 
+            self.CheckboxW.setStyleSheet("background-color: lightgrey; color: black;")
+        )
+        zone6_row1_col2_layout.addWidget(self.CheckboxW)
         
         # 细线
         line2 = QFrame()
@@ -1120,19 +1144,27 @@ class DL24App(QMainWindow):
         line2.setFrameShadow(QFrame.Sunken)
         line2.setMinimumHeight(2)
         line2.setMaximumHeight(2)
+        line2.setStyleSheet("background-color: orange;")
         line2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         zone6_row1_col2_layout.addWidget(line2)
-        zone6_row1_col2_layout.setStretch(2, 6)
+        zone6_row1_col2_layout.setStretch(2, 4)
+        
+        # 标签
+        label2 = QLabel("W")
+        label2.setStyleSheet("color: orange;")
+        label2.setAlignment(Qt.AlignCenter)
+        zone6_row1_col2_layout.addWidget(label2)
+        zone6_row1_col2_layout.setStretch(3, 1)
         
         # 右侧间隔（12.5%）
         right_spacer2 = QWidget()
         zone6_row1_col2_layout.addWidget(right_spacer2)
-        zone6_row1_col2_layout.setStretch(3, 1)
+        zone6_row1_col2_layout.setStretch(4, 1)
         
         zone6_row1_layout.addWidget(zone6_row1_col2)
         zone6_row1_layout.setStretch(1, 20)  # 20%
         
-        # 列3：20%宽度，添加复选框和细线
+        # 列3：20%宽度，添加复选框、细线和标签
         zone6_row1_col3 = QWidget()
         zone6_row1_col3_layout = QHBoxLayout(zone6_row1_col3)
         zone6_row1_col3_layout.setContentsMargins(0, 0, 0, 0)
@@ -1144,10 +1176,18 @@ class DL24App(QMainWindow):
         zone6_row1_col3_layout.setStretch(0, 1)
         
         # 复选框
-        checkbox3 = QCheckBox()
-        checkbox3.setMinimumSize(15, 15)
-        checkbox3.setMaximumSize(15, 15)
-        zone6_row1_col3_layout.addWidget(checkbox3)
+        self.CheckboxA = QCheckBox()
+        self.CheckboxA.setMinimumSize(15, 15)
+        self.CheckboxA.setMaximumSize(15, 15)
+        # 设置初始样式（选中状态）
+        self.CheckboxA.setStyleSheet("background-color: red; color: black;")
+        self.CheckboxA.setChecked(True)  # 默认选中
+        # 连接状态变化信号
+        self.CheckboxA.stateChanged.connect(lambda state: 
+            self.CheckboxA.setStyleSheet("background-color: red; color: black;") if state else 
+            self.CheckboxA.setStyleSheet("background-color: lightgrey; color: black;")
+        )
+        zone6_row1_col3_layout.addWidget(self.CheckboxA)
         
         # 细线
         line3 = QFrame()
@@ -1155,14 +1195,22 @@ class DL24App(QMainWindow):
         line3.setFrameShadow(QFrame.Sunken)
         line3.setMinimumHeight(2)
         line3.setMaximumHeight(2)
+        line3.setStyleSheet("background-color: red;")
         line3.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         zone6_row1_col3_layout.addWidget(line3)
-        zone6_row1_col3_layout.setStretch(2, 6)
+        zone6_row1_col3_layout.setStretch(2, 4)
+        
+        # 标签
+        label3 = QLabel("A")
+        label3.setStyleSheet("color: red;")
+        label3.setAlignment(Qt.AlignCenter)
+        zone6_row1_col3_layout.addWidget(label3)
+        zone6_row1_col3_layout.setStretch(3, 1)
         
         # 右侧间隔（12.5%）
         right_spacer3 = QWidget()
         zone6_row1_col3_layout.addWidget(right_spacer3)
-        zone6_row1_col3_layout.setStretch(3, 1)
+        zone6_row1_col3_layout.setStretch(4, 1)
         
         zone6_row1_layout.addWidget(zone6_row1_col3)
         zone6_row1_layout.setStretch(2, 20)  # 20%
