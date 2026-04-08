@@ -23,6 +23,9 @@ ColorP = QColor(255, 165, 0)  # Orange
 ColorV = QColor(0, 0, 255)  # Blue
 ColorA = QColor(255, 0, 0)  # Red
 
+# Global temperature variable
+MosT = 0.0  # Initial temperature
+
 # 版本号管理
 VERSION = "0.0.81"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1735,7 +1738,9 @@ class DL24App(QMainWindow):
             
             # 创建参数值标签
             value_label = QLabel("00.000" if i == 0 else "00.000" if i == 1 else "0000.0" if i == 2 else "00000" if i == 3 else "000.00" if i == 4 else "")
-            font = QFont("Arial", 24)  # Arial，24pt
+            # 为第6行（耗时）设置不同的字体大小
+            font_size = 20 if i == 5 else 24
+            font = QFont("Arial", font_size)  # Arial
             value_label.setFont(font)
             value_label.setAlignment(Qt.AlignCenter)
             value_label.setContentsMargins(0, 0, 0, 0)  # 0边距
@@ -1786,6 +1791,13 @@ class DL24App(QMainWindow):
             label="(W)"
         )
         self.scale_line.setParent(main_widget)
+        
+        # 4. 温度显示widget
+        self.temperature_label = QLabel("0.0°C", main_widget)
+        font = QFont("Arial", 14)
+        self.temperature_label.setFont(font)
+        self.temperature_label.setStyleSheet("color: purple;")
+        self.temperature_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         
         # 4. 第二个刻度线widget（自定义）
         self.scale_line2 = ScaleLineWidget(
@@ -2141,13 +2153,26 @@ class DL24App(QMainWindow):
         # 垂直居中：Zone6 位于 Zone1 底部和主布局底部的中间
         zone6_y = zone1_bottom + (vertical_space - zone6_height) / 2
         
-        # 使用绝对定位设置 Zone6 的位置和大小
+        # 使用绝对定位设置Zone6的位置和大小
         self.zone6_widget.setGeometry(
             int(zone6_x),
             int(zone6_y),
             int(zone6_width),
             int(zone6_height)
         )
+        
+        # 定位温度显示标签到右下角，所有其他widget下方
+        temperature_x = ui_width - right_margin - 150  # 150px width
+        temperature_y = ui_height - 40  # 40px from bottom
+        self.temperature_label.setGeometry(
+            int(temperature_x),
+            int(temperature_y),
+            150,
+            30
+        )
+        self.temperature_label.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        # 确保温度标签在最上层
+        self.temperature_label.raise_()
         
         # 计算并显示 Zone4 的间距
         # Zone4 结构：顶部边距 (20px) + title + 空行 (line_height) + port_widget(包含 port_label + spacing + combo + spacing + buttons) + 底部边距 (20px)
@@ -2446,7 +2471,11 @@ class DL24App(QMainWindow):
                     elif query_name == 'ReadSmWh':
                         results['energy'] = (response[2] << 16) | (response[3] << 8) | response[4]
                     elif query_name == 'ReadMosT':
-                        results['most'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                        smost = (response[2] << 16) | (response[3] << 8) | response[4]
+                        results['most'] = smost
+                        # Update global MosT variable
+                        global MosT
+                        MosT = smost  # Use raw SMosT value
                     elif query_name == 'ReadIset':
                         results['iset'] = (response[2] << 16) | (response[3] << 8) | response[4]
                     elif query_name == 'ReadVset':
@@ -2504,9 +2533,11 @@ class DL24App(QMainWindow):
                 # Update Iset entry box
                 self.row4_entry.setText(f"{Iset:.2f}")
                 self.Iset = Iset
-            
 
-            
+            # 更新温度显示
+            if hasattr(self, 'temperature_label'):
+                self.update_temperature_display()
+
             # 根据SLStatus更新OnOff按钮状态
             status = results.get('status')
             if status is not None:
@@ -3044,6 +3075,11 @@ class DL24App(QMainWindow):
         # 更新A刻度线颜色
         self.scale_line3.color = ColorA
         self.scale_line3.update()
+
+    def update_temperature_display(self):
+        """更新温度显示"""
+        global MosT
+        self.temperature_label.setText(f"{MosT:.1f}°C")
 
     def eventFilter(self, obj, event):
         """处理事件过滤器，捕获双击事件"""
