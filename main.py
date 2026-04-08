@@ -287,10 +287,8 @@ class ScaleLineWidget(QWidget):
         # 确保widget接收鼠标事件
         self.setAttribute(Qt.WA_TransparentForMouseEvents, False)
         self.setMouseTracking(True)
-        if orientation == "vertical":
-            self.setMinimumSize(150, height)
-        else:
-            self.setMinimumSize(scale_width, 100)
+        # 不要设置最小大小，让调用者通过setGeometry控制
+        self.setMinimumSize(0, 0)
         self.height = height
         self.scale_width = scale_width
         self.num_markers = num_markers
@@ -307,29 +305,60 @@ class ScaleLineWidget(QWidget):
         self.orientation = orientation  # 方向："vertical" 或 "horizontal"
     
     def mouseDoubleClickEvent(self, event):
-        # 当双击时直接打开对话框
-        from PySide6.QtWidgets import QDialog
-        dialog = ScaleRangeDialog(self.min_value, self.max_value, self.parent())
-        if dialog.exec() == QDialog.Accepted:
-            new_min, new_max = dialog.get_values()
-            if new_min is not None and new_max is not None:
-                # 更新刻度范围
-                self.set_range(new_min, new_max)
-                # 强制刷新显示
-                self.update()
+        # 检查点击位置是否在刻度线或标记区域内
+        pos = event.pos()
+        
+        # 计算实际刻度线位置
+        if self.orientation == "vertical":
+            # 垂直刻度线
+            if self.marker_direction == "left":
+                # 左指向标记：刻度线在右侧
+                scale_line_x = self.width() - 20
+                # 检查区域：刻度线附近及左侧标记区域
+                line_left = scale_line_x - self.marker_length - 10
+                line_right = scale_line_x + 10
+            else:
+                # 右指向标记：刻度线在左侧
+                scale_line_x = 20
+                # 检查区域：刻度线附近及右侧标记区域
+                line_left = scale_line_x - 10
+                line_right = scale_line_x + self.marker_length + 10
+            
+            # 垂直范围：刻度线上下区域
+            line_top = self.padding - 10
+            line_bottom = self.padding + self.height + 10
+        else:
+            # 水平刻度线
+            # 刻度线在中间
+            scale_line_y = 50
+            # 检查区域：刻度线附近及下方标记区域
+            line_left = self.padding - 10
+            line_right = self.padding + self.scale_width + 10
+            line_top = scale_line_y - 10
+            line_bottom = scale_line_y + self.marker_length + 10
+        
+        # 只在刻度线或标记区域内响应双击
+        if line_left <= pos.x() <= line_right and line_top <= pos.y() <= line_bottom:
+            # 当双击时直接打开对话框
+            from PySide6.QtWidgets import QDialog
+            dialog = ScaleRangeDialog(self.min_value, self.max_value, self.parent())
+            if dialog.exec() == QDialog.Accepted:
+                new_min, new_max = dialog.get_values()
+                if new_min is not None and new_max is not None:
+                    # 更新刻度范围
+                    self.set_range(new_min, new_max)
+                    # 强制刷新显示
+                    self.update()
         super().mouseDoubleClickEvent(event)
     
     def set_height(self, height):
         """设置刻度线高度"""
         self.height = height
-        self.setMinimumSize(150, int(height + 2 * self.padding))
         self.update()
     
     def set_width(self, scale_width):
         """设置刻度线宽度"""
         self.scale_width = scale_width
-        # 增加额外宽度以容纳右侧标签
-        self.setMinimumSize(int(scale_width + 2 * self.padding + 150), 100)
         self.update()
     
     def set_range(self, min_value, max_value):
@@ -1126,6 +1155,37 @@ class DL24App(QMainWindow):
         self.clear_data_btn = QPushButton("清除数据")
         self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
         self.clear_data_btn.setToolTip("清除数据")
+        
+        # 按钮点击行为
+        def on_clear_data_clicked():
+            if not self.is_connected:
+                print("Device not connected, cannot reset counters")
+                return
+            
+            # 设置按钮为黄色
+            self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: yellow; padding: 0px; margin: 0px; font-size: 17px;")
+            
+            # 强制UI更新
+            from PySide6.QtWidgets import QApplication
+            QApplication.processEvents()
+            
+            # 等待MainLoop完成
+            import time
+            while self.main_loop_running:
+                time.sleep(0.1)
+                QApplication.processEvents()
+            
+            # 调用SetResetCounters函数
+            success = self.SetResetCounters()
+            if success:
+                print("Counters reset successful")
+            else:
+                print("Failed to reset counters")
+            
+            # 恢复按钮颜色
+            self.clear_data_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
+        
+        self.clear_data_btn.clicked.connect(on_clear_data_clicked)
         
         # 启动按钮
         self.start_btn = QPushButton("启动")
@@ -2129,10 +2189,21 @@ class DL24App(QMainWindow):
         scale_x = (plottable_x + plottable_width) - 20  # 20是P Scale内部橙色点中心x坐标
         scale_y = plottable_y - 50  # 50是P Scale内部顶部橙色点中心y坐标
         scale_height = plottable_height  # 确保底部点对齐
-        scale_width = 150  # 保持宽度以显示完整数字
         
-        self.scale_line.set_height(scale_height)
-        self.scale_line.setGeometry(int(scale_x), int(scale_y), scale_width, int(scale_height + 2 * self.scale_line.padding))
+        # 计算Zone5的位置和宽度
+        zone5_x = zone2_x
+        
+        # 确保P Scale的右侧不与Zone5重叠
+        scale_width = zone5_x - scale_x - 10  # 10px margin
+        if scale_width < 50:
+            scale_width = 50  # 最小宽度
+        
+        # 保持P Scale的实际高度不变，确保刻度线延伸到T Scale
+        self.scale_line.set_height(plottable_height)
+        
+        # 设置widget的几何形状，使其足够大以包含完整的刻度线
+        # 包括底部与T Scale对齐的点
+        self.scale_line.setGeometry(int(scale_x), int(scale_y), int(scale_width), int(plottable_height + 2 * self.scale_line.padding))
         
         # 定位第三个刻度线widget（I Scale），使其红色点与浅灰色框的左上角和左下角点垂直对齐，并水平居中在Zone 1左边缘和PlotWindow左边缘之间
         # 计算可绘制区域的宽度和位置
