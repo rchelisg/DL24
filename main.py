@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox, QGridLayout, QMessageBox, QSizePolicy, QInputDialog,
     QDialog, QFormLayout, QDialogButtonBox, QSpacerItem, QLineEdit,
     QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene,
-    QTextEdit
+    QTextEdit, QFrame
 )
 from PySide6.QtCore import Qt, QTimer, QRect
 from PySide6.QtGui import QFont, QFontMetrics, QPen, QColor, QPainter
@@ -1047,7 +1047,6 @@ class DL24App(QMainWindow):
         
         # 6. 显示 widget (Zone 6)
         self.zone6_widget = QWidget(main_widget)
-        self.zone6_widget.setStyleSheet("background-color: lightgreen;")
         
         # 创建Zone6的布局为垂直布局
         self.zone6_layout = QVBoxLayout(self.zone6_widget)
@@ -1063,18 +1062,108 @@ class DL24App(QMainWindow):
         zone6_row1_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
         zone6_row1_layout.setSpacing(0)  # 0间距
         
-        # 列1：20%宽度
+        # 列1：20%宽度，添加复选框和细线
         zone6_row1_col1 = QWidget()
+        zone6_row1_col1_layout = QHBoxLayout(zone6_row1_col1)
+        zone6_row1_col1_layout.setContentsMargins(0, 0, 0, 0)
+        zone6_row1_col1_layout.setSpacing(5)
+        
+        # 左侧间隔（12.5%）
+        left_spacer1 = QWidget()
+        zone6_row1_col1_layout.addWidget(left_spacer1)
+        zone6_row1_col1_layout.setStretch(0, 1)
+        
+        # 复选框
+        checkbox1 = QCheckBox()
+        checkbox1.setMinimumSize(15, 15)
+        checkbox1.setMaximumSize(15, 15)
+        zone6_row1_col1_layout.addWidget(checkbox1)
+        
+        # 细线
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        line1.setFrameShadow(QFrame.Sunken)
+        line1.setMinimumHeight(2)
+        line1.setMaximumHeight(2)
+        line1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        zone6_row1_col1_layout.addWidget(line1)
+        zone6_row1_col1_layout.setStretch(2, 6)
+        
+        # 右侧间隔（12.5%）
+        right_spacer1 = QWidget()
+        zone6_row1_col1_layout.addWidget(right_spacer1)
+        zone6_row1_col1_layout.setStretch(3, 1)
+        
         zone6_row1_layout.addWidget(zone6_row1_col1)
         zone6_row1_layout.setStretch(0, 20)  # 20%
         
-        # 列2：20%宽度
+        # 列2：20%宽度，添加复选框和细线
         zone6_row1_col2 = QWidget()
+        zone6_row1_col2_layout = QHBoxLayout(zone6_row1_col2)
+        zone6_row1_col2_layout.setContentsMargins(0, 0, 0, 0)
+        zone6_row1_col2_layout.setSpacing(5)
+        
+        # 左侧间隔（12.5%）
+        left_spacer2 = QWidget()
+        zone6_row1_col2_layout.addWidget(left_spacer2)
+        zone6_row1_col2_layout.setStretch(0, 1)
+        
+        # 复选框
+        checkbox2 = QCheckBox()
+        checkbox2.setMinimumSize(15, 15)
+        checkbox2.setMaximumSize(15, 15)
+        zone6_row1_col2_layout.addWidget(checkbox2)
+        
+        # 细线
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setFrameShadow(QFrame.Sunken)
+        line2.setMinimumHeight(2)
+        line2.setMaximumHeight(2)
+        line2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        zone6_row1_col2_layout.addWidget(line2)
+        zone6_row1_col2_layout.setStretch(2, 6)
+        
+        # 右侧间隔（12.5%）
+        right_spacer2 = QWidget()
+        zone6_row1_col2_layout.addWidget(right_spacer2)
+        zone6_row1_col2_layout.setStretch(3, 1)
+        
         zone6_row1_layout.addWidget(zone6_row1_col2)
         zone6_row1_layout.setStretch(1, 20)  # 20%
         
-        # 列3：20%宽度
+        # 列3：20%宽度，添加复选框和细线
         zone6_row1_col3 = QWidget()
+        zone6_row1_col3_layout = QHBoxLayout(zone6_row1_col3)
+        zone6_row1_col3_layout.setContentsMargins(0, 0, 0, 0)
+        zone6_row1_col3_layout.setSpacing(5)
+        
+        # 左侧间隔（12.5%）
+        left_spacer3 = QWidget()
+        zone6_row1_col3_layout.addWidget(left_spacer3)
+        zone6_row1_col3_layout.setStretch(0, 1)
+        
+        # 复选框
+        checkbox3 = QCheckBox()
+        checkbox3.setMinimumSize(15, 15)
+        checkbox3.setMaximumSize(15, 15)
+        zone6_row1_col3_layout.addWidget(checkbox3)
+        
+        # 细线
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.HLine)
+        line3.setFrameShadow(QFrame.Sunken)
+        line3.setMinimumHeight(2)
+        line3.setMaximumHeight(2)
+        line3.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        zone6_row1_col3_layout.addWidget(line3)
+        zone6_row1_col3_layout.setStretch(2, 6)
+        
+        # 右侧间隔（12.5%）
+        right_spacer3 = QWidget()
+        zone6_row1_col3_layout.addWidget(right_spacer3)
+        zone6_row1_col3_layout.setStretch(3, 1)
+        
         zone6_row1_layout.addWidget(zone6_row1_col3)
         zone6_row1_layout.setStretch(2, 20)  # 20%
         
@@ -1360,8 +1449,24 @@ class DL24App(QMainWindow):
         new_row_layout.addWidget(col2)
         new_row_layout.setStretch(1, 90)  # 90%
         
-        # 列3：5%宽度
+        # 列3：5%宽度，添加状态指示器
         col3 = QWidget()
+        col3_layout = QHBoxLayout(col3)
+        col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        col3_layout.setSpacing(0)  # 0间距
+        
+        # 添加状态指示器
+        self.status_indicator = QLabel("●")
+        self.status_indicator.setFont(QFont("Arial", 12))
+        self.status_indicator.setStyleSheet("color: #FFFF99; padding: 0px; margin: 0px;")  # 初始为浅黄色
+        self.status_indicator.setAlignment(Qt.AlignCenter)  # 水平居中
+        self.status_indicator.setMinimumHeight(17)  # 固定高度
+        self.status_indicator.setMaximumHeight(17)  # 固定高度
+        self.status_indicator.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
+        col3_layout.addWidget(self.status_indicator)
+        col3_layout.setAlignment(Qt.AlignCenter)  # 水平居中
+        col3_layout.setAlignment(Qt.AlignVCenter)  # 垂直居中
+        
         new_row_layout.addWidget(col3)
         new_row_layout.setStretch(2, 5)  # 5%
         
@@ -1416,7 +1521,7 @@ class DL24App(QMainWindow):
             col3 = QWidget()
             col3_layout = QHBoxLayout(col3)
             col3_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
-            col3_layout.setSpacing(0)
+            col3_layout.setSpacing(0)  # 0间距
             
             # 创建参数值标签
             value_label = QLabel("00.000" if i == 0 else "00.000" if i == 1 else "0000.0" if i == 2 else "00000" if i == 3 else "000.00" if i == 4 else "")
@@ -2026,6 +2131,13 @@ class DL24App(QMainWindow):
         current_time = datetime.datetime.now().strftime('%M:%S')
         print(f"MainLoop [{current_time}]")
         
+        # 更新状态指示器为红色（MainLoop执行中）
+        if hasattr(self, 'status_indicator') and self.is_connected:
+            self.status_indicator.setStyleSheet("color: red; padding: 0px; margin: 0px;")
+            # 强制UI更新
+            from PySide6.QtWidgets import QApplication
+            QApplication.processEvents()
+        
         # 使用PX100协议查询设备数据
         if self.is_connected:
             import time
@@ -2190,6 +2302,13 @@ class DL24App(QMainWindow):
                     self.start_btn.setText("启动")
                     self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
         
+        # 更新状态指示器为绿色（MainLoop执行完成）
+        if hasattr(self, 'status_indicator') and self.is_connected:
+            self.status_indicator.setStyleSheet("color: green; padding: 0px; margin: 0px;")
+            # 强制UI更新
+            from PySide6.QtWidgets import QApplication
+            QApplication.processEvents()
+        
     def refresh_ports(self):
         self.port_combo.clear()
         ports = serial.tools.list_ports.comports()
@@ -2248,6 +2367,9 @@ class DL24App(QMainWindow):
                             # 更改端口下拉菜单为绿色并禁用
                             self.port_combo.setStyleSheet("border: none; background-color: white; padding: 2px; font-size: 16px;")
                             self.port_combo.setEnabled(False)
+                            # 更新状态指示器为绿色（初始状态，MainLoop未执行）
+                            if hasattr(self, 'status_indicator'):
+                                self.status_indicator.setStyleSheet("color: green; padding: 0px; margin: 0px;")
                             break
                         except Exception as e:
                             if attempt == max_attempts - 1:
@@ -2275,6 +2397,9 @@ class DL24App(QMainWindow):
             # 恢复端口下拉菜单为原始颜色并启用
             self.port_combo.setStyleSheet("border: none; background-color: white; padding: 2px; font-size: 16px;")
             self.port_combo.setEnabled(True)
+            # 更新状态指示器为浅黄色
+            if hasattr(self, 'status_indicator'):
+                self.status_indicator.setStyleSheet("color: #FFFF99; padding: 0px; margin: 0px;")
             
     def update_data(self):
         # 从串口接收数据并更新
