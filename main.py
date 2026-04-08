@@ -878,6 +878,70 @@ class DL24App(QMainWindow):
         self.row3_entry.setPlaceholderText("0.00")
         self.row3_entry.setAlignment(Qt.AlignCenter)
         self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+        
+        # 输入框事件处理
+        row3_old_value = ""
+        
+        def on_row3_focus_in():
+            # 开始编辑时停止MainLoop并设置黄色背景
+            nonlocal row3_old_value
+            if self.main_loop_timer.isActive():
+                self.main_loop_timer.stop()
+            # 保存当前值
+            row3_old_value = self.row3_entry.text()
+            self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black; background-color: yellow;")
+            # 清空输入框并设置光标位置
+            self.row3_entry.clear()
+            self.row3_entry.setCursorPosition(0)
+        
+        def on_row3_focus_out():
+            # 失去焦点时恢复颜色和值
+            nonlocal row3_old_value
+            self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+            # 恢复旧值
+            self.row3_entry.setText(row3_old_value)
+            # 重新启动MainLoop
+            if not self.main_loop_timer.isActive():
+                self.main_loop_timer.start(1000)
+        
+        def on_row3_key_press(event):
+            nonlocal row3_old_value
+            if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+                # 按Enter键完成编辑
+                try:
+                    voltage = float(self.row3_entry.text())
+                    if self.is_connected:
+                        success = self.SetVset(voltage)
+                        if success:
+                            print(f"SetVset successful: {voltage}V")
+                            # 更新旧值
+                            row3_old_value = f"{voltage:.2f}"
+                except ValueError:
+                    print("Invalid voltage value")
+                # 恢复颜色并重新启动MainLoop
+                self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                if not self.main_loop_timer.isActive():
+                    self.main_loop_timer.start(1000)
+                # 移除焦点
+                self.row3_entry.clearFocus()
+            elif event.key() == Qt.Key_Escape:
+                # 按ESC键取消编辑
+                self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                # 恢复旧值
+                self.row3_entry.setText(row3_old_value)
+                if not self.main_loop_timer.isActive():
+                    self.main_loop_timer.start(1000)
+                # 移除焦点
+                self.row3_entry.clearFocus()
+            else:
+                # 其他键交给默认处理
+                QLineEdit.keyPressEvent(self.row3_entry, event)
+        
+        # 连接信号
+        self.row3_entry.focusInEvent = lambda event: (QLineEdit.focusInEvent(self.row3_entry, event), on_row3_focus_in())
+        self.row3_entry.focusOutEvent = lambda event: (QLineEdit.focusOutEvent(self.row3_entry, event), on_row3_focus_out())
+        self.row3_entry.keyPressEvent = on_row3_key_press
+        
         self.row3_entry.textChanged.connect(self.on_cutoff_voltage_changed)
         row3_col3_layout.addWidget(self.row3_entry)
         
@@ -900,26 +964,8 @@ class DL24App(QMainWindow):
         row3_layout.addWidget(row3_col4)
         row3_layout.setStretch(3, 10)  # 10%
         
-        # 列5：25%宽度，添加设置按钮
+        # 列5：25%宽度（保留空间）
         row3_col5 = QWidget()
-        row3_col5_layout = QHBoxLayout(row3_col5)
-        row3_col5_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
-        row3_col5_layout.setSpacing(0)
-        
-        # 添加设置按钮
-        self.ButtonVset = QPushButton("设置")
-        font = QFont("SimHei", 12)  # 黑体，12px
-        self.ButtonVset.setFont(font)
-        self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;")
-        self.ButtonVset.setFixedHeight(20)  # Reduced by 25% from 27px
-        self.ButtonVset.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        # Connect pressed and released signals for visual feedback
-        self.ButtonVset.pressed.connect(lambda: self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 10px; background-color: yellow; padding: 2px 15px; margin: 0px; font-size: 12px;"))
-        self.ButtonVset.released.connect(lambda: self.ButtonVset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;"))
-        row3_col5_layout.addStretch()
-        row3_col5_layout.addWidget(self.ButtonVset)
-        row3_col5_layout.addStretch()
-        
         row3_layout.addWidget(row3_col5)
         row3_layout.setStretch(4, 25)  # 25%
         
@@ -972,6 +1018,70 @@ class DL24App(QMainWindow):
         self.row4_entry.setPlaceholderText("0.00")
         self.row4_entry.setAlignment(Qt.AlignCenter)
         self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+        
+        # 输入框事件处理
+        row4_old_value = ""
+        
+        def on_row4_focus_in():
+            # 开始编辑时停止MainLoop并设置黄色背景
+            nonlocal row4_old_value
+            if self.main_loop_timer.isActive():
+                self.main_loop_timer.stop()
+            # 保存当前值
+            row4_old_value = self.row4_entry.text()
+            self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black; background-color: yellow;")
+            # 清空输入框并设置光标位置
+            self.row4_entry.clear()
+            self.row4_entry.setCursorPosition(0)
+        
+        def on_row4_focus_out():
+            # 失去焦点时恢复颜色和值
+            nonlocal row4_old_value
+            self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+            # 恢复旧值
+            self.row4_entry.setText(row4_old_value)
+            # 重新启动MainLoop
+            if not self.main_loop_timer.isActive():
+                self.main_loop_timer.start(1000)
+        
+        def on_row4_key_press(event):
+            nonlocal row4_old_value
+            if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+                # 按Enter键完成编辑
+                try:
+                    current = float(self.row4_entry.text())
+                    if self.is_connected:
+                        success = self.SetIset(current)
+                        if success:
+                            print(f"SetIset successful: {current}A")
+                            # 更新旧值
+                            row4_old_value = f"{current:.2f}"
+                except ValueError:
+                    print("Invalid current value")
+                # 恢复颜色并重新启动MainLoop
+                self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                if not self.main_loop_timer.isActive():
+                    self.main_loop_timer.start(1000)
+                # 移除焦点
+                self.row4_entry.clearFocus()
+            elif event.key() == Qt.Key_Escape:
+                # 按ESC键取消编辑
+                self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                # 恢复旧值
+                self.row4_entry.setText(row4_old_value)
+                if not self.main_loop_timer.isActive():
+                    self.main_loop_timer.start(1000)
+                # 移除焦点
+                self.row4_entry.clearFocus()
+            else:
+                # 其他键交给默认处理
+                QLineEdit.keyPressEvent(self.row4_entry, event)
+        
+        # 连接信号
+        self.row4_entry.focusInEvent = lambda event: (QLineEdit.focusInEvent(self.row4_entry, event), on_row4_focus_in())
+        self.row4_entry.focusOutEvent = lambda event: (QLineEdit.focusOutEvent(self.row4_entry, event), on_row4_focus_out())
+        self.row4_entry.keyPressEvent = on_row4_key_press
+        
         self.row4_entry.textChanged.connect(self.on_load_current_changed)
         row4_col3_layout.addWidget(self.row4_entry)
         
@@ -994,26 +1104,8 @@ class DL24App(QMainWindow):
         row4_layout.addWidget(row4_col4)
         row4_layout.setStretch(3, 10)  # 10%
         
-        # 列5：25%宽度，添加设置按钮
+        # 列5：25%宽度（保留空间）
         row4_col5 = QWidget()
-        row4_col5_layout = QHBoxLayout(row4_col5)
-        row4_col5_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
-        row4_col5_layout.setSpacing(0)
-        
-        # 添加设置按钮
-        self.ButtonIset = QPushButton("设置")
-        font = QFont("SimHei", 12)  # 黑体，12px
-        self.ButtonIset.setFont(font)
-        self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;")
-        self.ButtonIset.setFixedHeight(20)  # Reduced by 25% from 27px
-        self.ButtonIset.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        # Connect pressed and released signals for visual feedback
-        self.ButtonIset.pressed.connect(lambda: self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 10px; background-color: yellow; padding: 2px 15px; margin: 0px; font-size: 12px;"))
-        self.ButtonIset.released.connect(lambda: self.ButtonIset.setStyleSheet("border: 1px solid gray; border-radius: 10px; padding: 2px 15px; margin: 0px; font-size: 12px;"))
-        row4_col5_layout.addStretch()
-        row4_col5_layout.addWidget(self.ButtonIset)
-        row4_col5_layout.addStretch()
-        
         row4_layout.addWidget(row4_col5)
         row4_layout.setStretch(4, 25)  # 25%
         
@@ -1687,13 +1779,7 @@ class DL24App(QMainWindow):
             value = float(text)
             if 0 <= value <= 50:
                 self.Vset = value
-                # 保留两位小数
-                self.row3_entry.setText(f"{value:.2f}")
-            else:
-                # 超出范围，恢复为之前值
-                self.row3_entry.setText(f"{self.Vset:.2f}")
         except ValueError:
-            # 无效输入，保持当前值
             pass
         
     def on_load_current_changed(self, text):
@@ -1702,13 +1788,7 @@ class DL24App(QMainWindow):
             value = float(text)
             if 0 <= value <= 50:
                 self.Iset = value
-                # 保留两位小数
-                self.row4_entry.setText(f"{value:.2f}")
-            else:
-                # 超出范围，恢复为之前值
-                self.row4_entry.setText(f"{self.Iset:.2f}")
         except ValueError:
-            # 无效输入，保持当前值
             pass
         
     def on_refresh_button_pressed(self):
@@ -2134,6 +2214,9 @@ class DL24App(QMainWindow):
         self.plot_timer.timeout.connect(self.update_plot)
         self.plot_timer.start(5000)  # 5秒更新一次
         
+        # 主循环执行状态标志
+        self.main_loop_running = False
+        
         # 主循环定时器 - 设置为最高优先级
         self.main_loop_timer = QTimer()
         self.main_loop_timer.setTimerType(Qt.PreciseTimer)  # 使用精确定时器
@@ -2175,6 +2258,8 @@ class DL24App(QMainWindow):
         
     def MainLoop(self):
         # 主循环函数
+        self.main_loop_running = True
+        
         import datetime
         current_time = datetime.datetime.now().strftime('%M:%S')
         print(f"MainLoop [{current_time}]")
@@ -2356,6 +2441,9 @@ class DL24App(QMainWindow):
             # 强制UI更新
             from PySide6.QtWidgets import QApplication
             QApplication.processEvents()
+        
+        # 主循环执行完成
+        self.main_loop_running = False
         
     def refresh_ports(self):
         self.port_combo.clear()
