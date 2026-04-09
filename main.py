@@ -150,6 +150,8 @@ class OverlayWidget(QWidget):
         self.zone1_label.setFixedSize(600, 60)  # 增加宽度以容纳20个中文字符
         self.zone1_label.setCursor(Qt.PointingHandCursor)
         self.zone1_label.mouseDoubleClickEvent = self.on_label_double_click
+        
+
     
     def set_plot_window(self, plot_window):
         self.plot_window = plot_window
@@ -207,6 +209,9 @@ class OverlayWidget(QWidget):
         super().paintEvent(event)
         if not self.plot_window:
             return
+        print("OverlayWidget paintEvent called")
+        print(f"Plot window geometry: {self.plot_window.geometry()}")
+        print(f"Overlay widget geometry: {self.geometry()}")
         
         # 获取PlotWindow的位置和大小
         plot_geometry = self.plot_window.geometry()
@@ -229,11 +234,7 @@ class OverlayWidget(QWidget):
             # 调整位置使4x4点居中在角落
             painter.drawEllipse(int(plottable_x) - 2, int(plottable_y) - 2, 4, 4)
             
-            # 绘制黑色点在左下角（原浅灰色框的左边缘和下边缘的交点）
-            painter.setPen(QPen(QColor(0, 0, 0), 1))
-            painter.setBrush(QColor(0, 0, 0))
-            # 调整位置使4x4点居中在角落
-            painter.drawEllipse(int(plottable_x) - 2, int(plottable_y + plottable_height) - 2, 4, 4)
+
             
             # 绘制粉色点在右下角（原浅灰色框的右边缘和下边缘的交点）
             painter.setPen(QPen(QColor(255, 192, 203), 1))
@@ -241,11 +242,15 @@ class OverlayWidget(QWidget):
             # 调整位置使4x4点居中在角落
             painter.drawEllipse(int(plottable_x + plottable_width) - 2, int(plottable_y + plottable_height) - 2, 4, 4)
             
+
+            
             # 绘制深粉色点在右上角（原浅灰色框的右边缘和上边缘的交点）
             painter.setPen(QPen(QColor(255, 105, 180), 1))
             painter.setBrush(QColor(255, 105, 180))
             # 调整位置使4x4点居中在角落
             painter.drawEllipse(int(plottable_x + plottable_width) - 2, int(plottable_y) - 2, 4, 4)
+            
+
             
             # 绘制浅灰色线连接紫色点和深粉色点
             painter.setPen(QPen(QColor(200, 200, 200), 1))  # 浅灰色，线宽1，更明显
@@ -620,6 +625,23 @@ class ScaleRangeDialog(QDialog):
             QMessageBox.warning(self, "输入错误", "请输入有效的数字")
             return None, None
 
+class PurpleDotWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # 设置透明背景
+        self.setStyleSheet("background-color: transparent;")
+    
+    def paintEvent(self, event):
+        # 绘制紫色点
+        painter = QPainter(self)
+        try:
+            painter.setPen(QPen(QColor(128, 0, 128), 1))  # 紫色
+            painter.setBrush(QColor(128, 0, 128))
+            # 左下角，中心对齐于黄色区域的左边缘和下边缘的交点
+            painter.drawEllipse(0, self.height() - 5, 10, 10)
+        finally:
+            painter.end()
+
 class PlotWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -648,9 +670,19 @@ class PlotWindow(QWidget):
             # 创建曲线
             curve = self.plot_widget.plot(pen=colors[i])
             self.curves.append(curve)
+        
+
     
 
     
+
+    
+
+    
+
+
+
+
 
 
 class DisplayWidget(QWidget):
@@ -668,6 +700,12 @@ class DisplayWidget(QWidget):
         self.overlay.set_plot_window(self.plot_window)
         self.overlay.show()
         self.overlay.raise_()
+        
+        # 创建紫色点标签
+        self.purple_dot = QLabel(self)
+        self.purple_dot.setStyleSheet("background-color: purple; border-radius: 3.5px;")
+        self.purple_dot.setFixedSize(7, 7)
+        self.purple_dot.show()
     
     def paintEvent(self, event):
         # 调用父类的paintEvent
@@ -710,9 +748,25 @@ class DisplayWidget(QWidget):
         )
         # 设置覆盖层的大小和位置，使其覆盖整个DisplayWidget
         self.overlay.setGeometry(0, 0, width, height)
+
+        
         # 强制PlotWindow和覆盖层更新
         self.plot_window.update()
         self.overlay.update()
+        
+        # 定位紫色点标签在黄色区域的左下角
+        purple_dot_x = int(left_space) - 3
+        purple_dot_y = int(top_space + plot_height) - 3
+        self.purple_dot.setGeometry(purple_dot_x, purple_dot_y, 7, 7)
+        self.purple_dot.raise_()
+        
+
+        
+
+        
+
+        
+
     
     def update_info(self, info_text):
         # 更新标签内容
