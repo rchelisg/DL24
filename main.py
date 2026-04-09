@@ -26,6 +26,9 @@ ColorA = QColor(255, 0, 0)  # Red
 # Global temperature variable
 MosT = 0.0  # Initial temperature
 
+# Global runtime variable
+RunTime = 0  # Initial runtime in seconds
+
 # 版本号管理
 VERSION = "0.0.81"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -289,7 +292,7 @@ class ScaleLineWidget(QWidget):
     from PySide6.QtCore import Signal
     doubleClicked = Signal()
     
-    def __init__(self, parent=None, height=300, scale_width=300, num_markers=6, min_value=0, max_value=200, color=QColor(255, 165, 0), label="(W)", marker_direction="right", alignment="left", orientation="vertical"):
+    def __init__(self, parent=None, height=300, scale_width=300, num_markers=6, min_value=0, max_value=200, color=QColor(255, 165, 0), label="(W)", marker_direction="right", alignment="left", orientation="vertical", scale_type="P"):
         super().__init__(parent)
         self.setStyleSheet("background-color: transparent;")
         # 确保widget接收鼠标事件
@@ -311,6 +314,7 @@ class ScaleLineWidget(QWidget):
         self.marker_direction = marker_direction  # 标记方向："left", "right", "up", "down"
         self.alignment = alignment  # 数字对齐方式："left" 或 "right"
         self.orientation = orientation  # 方向："vertical" 或 "horizontal"
+        self.scale_type = scale_type  # 刻度类型："V", "A", "P", "T"
     
     def mouseDoubleClickEvent(self, event):
         # 检查点击位置是否在刻度线或标记区域内
@@ -349,7 +353,7 @@ class ScaleLineWidget(QWidget):
         if line_left <= pos.x() <= line_right and line_top <= pos.y() <= line_bottom:
             # 当双击时直接打开对话框
             from PySide6.QtWidgets import QDialog
-            dialog = ScaleRangeDialog(self.min_value, self.max_value, self.parent())
+            dialog = ScaleRangeDialog(self.min_value, self.max_value, self.scale_type, self.parent())
             if dialog.exec() == QDialog.Accepted:
                 new_min, new_max = dialog.get_values()
                 if new_min is not None and new_max is not None:
@@ -544,10 +548,19 @@ class ScaleLineWidget(QWidget):
             painter.end()
 
 class ScaleRangeDialog(QDialog):
-    def __init__(self, current_min, current_max, parent=None):
-        from PySide6.QtWidgets import QLineEdit, QLabel, QVBoxLayout, QGridLayout, QPushButton, QHBoxLayout
+    def __init__(self, current_min, current_max, scale_type, parent=None):
+        from PySide6.QtWidgets import QLineEdit, QLabel, QVBoxLayout, QGridLayout, QPushButton, QHBoxLayout, QMessageBox
         super().__init__(parent)
         self.setWindowTitle("设置刻度范围")
+        self.scale_type = scale_type
+        
+        # 定义各刻度类型的允许范围
+        self.ranges = {
+            "V": [0, 30],  # 电压
+            "A": [0, 30],  # 电流
+            "P": [0, 180],  # 功率
+            "T": [0, 3600]  # 时间
+        }
         
         layout = QVBoxLayout(self)
         
@@ -582,8 +595,29 @@ class ScaleRangeDialog(QDialog):
         try:
             min_val = float(self.min_edit.text())
             max_val = float(self.max_edit.text())
+            
+            # 检查值是否在允许范围内
+            if self.scale_type in self.ranges:
+                min_range, max_range = self.ranges[self.scale_type]
+                if min_val < min_range:
+                    from PySide6.QtWidgets import QMessageBox
+                    QMessageBox.warning(self, "输入错误", f"最小值不能小于 {min_range}")
+                    return None, None
+                if max_val > max_range:
+                    from PySide6.QtWidgets import QMessageBox
+                    QMessageBox.warning(self, "输入错误", f"最大值不能大于 {max_range}")
+                    return None, None
+            
+            # 检查最小值是否小于最大值
+            if min_val >= max_val:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "输入错误", "最小值必须小于最大值")
+                return None, None
+            
             return min_val, max_val
         except ValueError:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "输入错误", "请输入有效的数字")
             return None, None
 
 class PlotWindow(QWidget):
@@ -1784,11 +1818,14 @@ class DL24App(QMainWindow):
         self.spacer_after_row7.setMinimumHeight(3)  # 默认3px高度
         self.zone2_layout.addWidget(self.spacer_after_row7)
         
-        # 3. 刻度线widget
+        # 3. 刻度线widget (Power)
         self.scale_line = ScaleLineWidget(
             main_widget, 
+            min_value=0, 
+            max_value=50, 
             color=ColorP,  # 使用全局变量
-            label="(W)"
+            label="(W)",
+            scale_type="P"
         )
         self.scale_line.setParent(main_widget)
         
@@ -1799,27 +1836,29 @@ class DL24App(QMainWindow):
         self.temperature_label.setStyleSheet("color: purple;")
         self.temperature_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
         
-        # 4. 第二个刻度线widget（自定义）
+        # 4. 第二个刻度线widget（Voltage）
         self.scale_line2 = ScaleLineWidget(
             main_widget, 
-            min_value=0, 
-            max_value=30, 
+            min_value=2, 
+            max_value=5, 
             color=ColorV,  # 使用全局变量
             label="(V)", 
             marker_direction="left",  # 标记指向左侧
-            alignment="right"  # 数字右对齐，与橙色刻度线保持一致
+            alignment="right",  # 数字右对齐，与橙色刻度线保持一致
+            scale_type="V"
         )
         self.scale_line2.setParent(main_widget)
         
-        # 5. 第三个刻度线widget（I Scale）
+        # 5. 第三个刻度线widget（Current）
         self.scale_line3 = ScaleLineWidget(
             main_widget, 
             min_value=0, 
-            max_value=15, 
+            max_value=10, 
             color=ColorA,  # 使用全局变量
             label="(A)", 
             marker_direction="left",  # 标记指向左侧，与V Scale一致
-            alignment="right"  # 数字右对齐，与V Scale一致
+            alignment="right",  # 数字右对齐，与V Scale一致
+            scale_type="A"
         )
         self.scale_line3.setParent(main_widget)
         
@@ -1834,7 +1873,8 @@ class DL24App(QMainWindow):
             label="(S)", 
             marker_direction="down",  # 标记指向下方
             alignment="center",  # 数字居中对齐
-            orientation="horizontal"  # 水平方向
+            orientation="horizontal",  # 水平方向
+            scale_type="T"
         )
         self.scale_line4.setParent(main_widget)
         
@@ -2465,6 +2505,9 @@ class DL24App(QMainWindow):
                         self.H = response[2]  # 小时
                         self.M = response[3]  # 分钟
                         self.S = response[4]  # 秒
+                        # 计算RunTime
+                        global RunTime
+                        RunTime = self.S + self.M * 60 + self.H * 3600
                         results['timer'] = (response[2] << 16) | (response[3] << 8) | response[4]
                     elif query_name == 'ReadSmAh':
                         results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
@@ -3078,8 +3121,8 @@ class DL24App(QMainWindow):
 
     def update_temperature_display(self):
         """更新温度显示"""
-        global MosT
-        self.temperature_label.setText(f"{MosT:.1f}°C")
+        global MosT, RunTime
+        self.temperature_label.setText(f"{RunTime}S   {MosT:.1f}°C")
 
     def eventFilter(self, obj, event):
         """处理事件过滤器，捕获双击事件"""
