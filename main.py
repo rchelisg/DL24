@@ -209,9 +209,6 @@ class OverlayWidget(QWidget):
         super().paintEvent(event)
         if not self.plot_window:
             return
-        print("OverlayWidget paintEvent called")
-        print(f"Plot window geometry: {self.plot_window.geometry()}")
-        print(f"Overlay widget geometry: {self.geometry()}")
         
         # 获取PlotWindow的位置和大小
         plot_geometry = self.plot_window.geometry()
@@ -227,35 +224,11 @@ class OverlayWidget(QWidget):
             plottable_width = width - 30  # 宽度减去右侧边距
             plottable_height = height - 10  # 高度减去顶部边距
             
-            # 绘制紫色点在左上角（原浅灰色框的左边缘和上边缘的交点）
-            # 点的大小与原浅灰色框的线宽相同，居中绘制
-            painter.setPen(QPen(QColor(128, 0, 128), 1))
-            painter.setBrush(QColor(128, 0, 128))
-            # 调整位置使4x4点居中在角落
-            painter.drawEllipse(int(plottable_x) - 2, int(plottable_y) - 2, 4, 4)
+
             
 
             
-            # 绘制粉色点在右下角（原浅灰色框的右边缘和下边缘的交点）
-            painter.setPen(QPen(QColor(255, 192, 203), 1))
-            painter.setBrush(QColor(255, 192, 203))
-            # 调整位置使4x4点居中在角落
-            painter.drawEllipse(int(plottable_x + plottable_width) - 2, int(plottable_y + plottable_height) - 2, 4, 4)
-            
 
-            
-            # 绘制深粉色点在右上角（原浅灰色框的右边缘和上边缘的交点）
-            painter.setPen(QPen(QColor(255, 105, 180), 1))
-            painter.setBrush(QColor(255, 105, 180))
-            # 调整位置使4x4点居中在角落
-            painter.drawEllipse(int(plottable_x + plottable_width) - 2, int(plottable_y) - 2, 4, 4)
-            
-
-            
-            # 绘制浅灰色线连接紫色点和深粉色点
-            painter.setPen(QPen(QColor(200, 200, 200), 1))  # 浅灰色，线宽1，更明显
-            # 绘制连接线，直接使用坐标
-            painter.drawLine(int(plottable_x), int(plottable_y), int(plottable_x + plottable_width), int(plottable_y))
             
             # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
             dashed_pen = QPen(QColor(200, 200, 200), 1)
@@ -408,16 +381,7 @@ class ScaleLineWidget(QWidget):
                     scale_line_x = 20  # 刻度线靠近左侧
                 painter.drawLine(scale_line_x, start_y, scale_line_x, end_y)
                 
-                # 绘制圆点在刻度线的顶部和底部，使用与刻度线相同的颜色和大小
-                pen = QPen()
-                pen.setColor(self.color)
-                pen.setWidth(2)
-                painter.setPen(pen)
-                painter.setBrush(self.color)
-                # 顶部圆点，大小与刻度线宽度相同，精确居中在刻度线起点
-                painter.drawEllipse(int(scale_line_x - self.line_width/2), int(start_y - self.line_width/2), self.line_width, self.line_width)
-                # 底部圆点，大小与刻度线宽度相同，精确居中在刻度线终点
-                painter.drawEllipse(int(scale_line_x - self.line_width/2), int(end_y - self.line_width/2), self.line_width, self.line_width)
+
                 
                 # 在刻度线顶部添加标签
                 # 创建粗体字体
@@ -490,16 +454,7 @@ class ScaleLineWidget(QWidget):
                     scale_line_y = 50  # 刻度线居中
                 painter.drawLine(start_x, scale_line_y, end_x, scale_line_y)
                 
-                # 绘制圆点在刻度线的左侧和右侧，使用与刻度线相同的颜色和大小
-                pen = QPen()
-                pen.setColor(self.color)
-                pen.setWidth(2)
-                painter.setPen(pen)
-                painter.setBrush(self.color)
-                # 左侧圆点，大小与刻度线宽度相同
-                painter.drawEllipse(int(start_x - self.line_width/2), int(scale_line_y - self.line_width/2), self.line_width, self.line_width)
-                # 右侧圆点，大小与刻度线宽度相同
-                painter.drawEllipse(int(end_x - self.line_width/2), int(scale_line_y - self.line_width/2), self.line_width, self.line_width)
+
                 
                 # 在刻度线右侧添加标签
                 # 创建粗体字体
@@ -701,11 +656,9 @@ class DisplayWidget(QWidget):
         self.overlay.show()
         self.overlay.raise_()
         
-        # 创建紫色点标签
-        self.purple_dot = QLabel(self)
-        self.purple_dot.setStyleSheet("background-color: purple; border-radius: 3.5px;")
-        self.purple_dot.setFixedSize(7, 7)
-        self.purple_dot.show()
+
+        
+
     
     def paintEvent(self, event):
         # 调用父类的paintEvent
@@ -753,12 +706,6 @@ class DisplayWidget(QWidget):
         # 强制PlotWindow和覆盖层更新
         self.plot_window.update()
         self.overlay.update()
-        
-        # 定位紫色点标签在黄色区域的左下角
-        purple_dot_x = int(left_space) - 3
-        purple_dot_y = int(top_space + plot_height) - 3
-        self.purple_dot.setGeometry(purple_dot_x, purple_dot_y, 7, 7)
-        self.purple_dot.raise_()
         
 
         
