@@ -142,6 +142,7 @@ class OverlayWidget(QWidget):
         self.setStyleSheet("background-color: transparent;")
         self.plot_window = None
         self.main_window = main_window
+        self.show_curves = True  # 控制是否显示曲线
         
         # 添加Zone1标签
         self.zone1_label = QLabel("实时放电曲线", self)
@@ -150,6 +151,16 @@ class OverlayWidget(QWidget):
         self.zone1_label.setFixedSize(600, 60)  # 增加宽度以容纳20个中文字符
         self.zone1_label.setCursor(Qt.PointingHandCursor)
         self.zone1_label.mouseDoubleClickEvent = self.on_label_double_click
+    
+    def mouseDoubleClickEvent(self, event):
+        # 双击时隐藏曲线，恢复整个绘图区域
+        self.show_curves = False
+        self.update()
+    
+    def mousePressEvent(self, event):
+        # 单击时重新绘制曲线
+        self.show_curves = True
+        self.update()
         
 
     
@@ -229,6 +240,105 @@ class OverlayWidget(QWidget):
 
             
 
+            
+
+            
+            # 绘制三条曲线
+            if self.show_curves:
+                # 定义曲线参数
+                t_min = 0
+                t_max = 250
+                resolution = 300
+                
+                # 获取实际刻度值
+                try:
+                    # V scale (scale_line2)
+                    v_min = self.main_window.scale_line2.min_value
+                    v_max = self.main_window.scale_line2.max_value
+                    
+                    # I scale (scale_line3)
+                    i_min = self.main_window.scale_line3.min_value
+                    i_max = self.main_window.scale_line3.max_value
+                    
+                    # P scale (scale_line)
+                    p_min = self.main_window.scale_line.min_value
+                    p_max = self.main_window.scale_line.max_value
+                    
+                    # T scale (scale_line4)
+                    t_scale_min = self.main_window.scale_line4.min_value
+                    t_scale_max = self.main_window.scale_line4.max_value
+                except Exception:
+                    #  fallback to default values if scale widgets not available
+                    v_min, v_max = 2, 5
+                    i_min, i_max = 0, 10
+                    p_min, p_max = 0, 50
+                    t_scale_min, t_scale_max = 0, 300
+                
+                # 1. 蓝色曲线：v(t) = 2+0.032t
+                painter.setPen(QPen(QColor(0, 0, 255), 2))  # 蓝色，线宽2
+                
+                # 生成并绘制v(t)曲线
+                prev_x, prev_y = None, None
+                for i in range(resolution + 1):
+                    t = t_min + (i / resolution) * (t_max - t_min)
+                    v = 2 + 0.032 * t
+                    # 确保值在范围内
+                    v = max(v_min, min(v_max, v))
+                    # 计算坐标
+                    # T scale: mapped to 0-1 ratio
+                    t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                    # V scale: mapped to 0-1 ratio
+                    v_ratio = (v - v_min) / (v_max - v_min)
+                    x = plottable_x + t_ratio * plottable_width
+                    y = plottable_y + (1 - v_ratio) * plottable_height
+                    
+                    if prev_x is not None and prev_y is not None:
+                        painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                    prev_x, prev_y = x, y
+                
+                # 2. 红色曲线：i(t) = 10-0.04t
+                painter.setPen(QPen(QColor(255, 0, 0), 2))  # 红色，线宽2
+                
+                # 生成并绘制i(t)曲线
+                prev_x, prev_y = None, None
+                for i in range(resolution + 1):
+                    t = t_min + (i / resolution) * (t_max - t_min)
+                    i_val = 10 - 0.04 * t
+                    # 确保值在范围内
+                    i_val = max(i_min, min(i_max, i_val))
+                    # 计算坐标
+                    # T scale: mapped to 0-1 ratio
+                    t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                    # I scale: mapped to 0-1 ratio
+                    i_ratio = (i_val - i_min) / (i_max - i_min)
+                    x = plottable_x + t_ratio * plottable_width
+                    y = plottable_y + (1 - i_ratio) * plottable_height
+                    
+                    if prev_x is not None and prev_y is not None:
+                        painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                    prev_x, prev_y = x, y
+                
+                # 3. 橙色曲线：p(t) = 10+0.16t
+                painter.setPen(QPen(QColor(255, 165, 0), 2))  # 橙色，线宽2
+                
+                # 生成并绘制p(t)曲线
+                prev_x, prev_y = None, None
+                for i in range(resolution + 1):
+                    t = t_min + (i / resolution) * (t_max - t_min)
+                    p = 10 + 0.16 * t
+                    # 确保值在范围内
+                    p = max(p_min, min(p_max, p))
+                    # 计算坐标
+                    # T scale: mapped to 0-1 ratio
+                    t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                    # P scale: mapped to 0-1 ratio
+                    p_ratio = (p - p_min) / (p_max - p_min)
+                    x = plottable_x + t_ratio * plottable_width
+                    y = plottable_y + (1 - p_ratio) * plottable_height
+                    
+                    if prev_x is not None and prev_y is not None:
+                        painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                    prev_x, prev_y = x, y
             
             # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
             dashed_pen = QPen(QColor(200, 200, 200), 1)
