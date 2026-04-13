@@ -274,71 +274,7 @@ class OverlayWidget(QWidget):
                     p_min, p_max = 0, 50
                     t_scale_min, t_scale_max = 0, 300
                 
-                # 1. 蓝色曲线：v(t) = 2+0.032t
-                painter.setPen(QPen(QColor(0, 0, 255), 2))  # 蓝色，线宽2
-                
-                # 生成并绘制v(t)曲线
-                prev_x, prev_y = None, None
-                for i in range(resolution + 1):
-                    t = t_min + (i / resolution) * (t_max - t_min)
-                    v = 2 + 0.032 * t
-                    # 确保值在范围内
-                    v = max(v_min, min(v_max, v))
-                    # 计算坐标
-                    # T scale: mapped to 0-1 ratio
-                    t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
-                    # V scale: mapped to 0-1 ratio
-                    v_ratio = (v - v_min) / (v_max - v_min)
-                    x = plottable_x + t_ratio * plottable_width
-                    y = plottable_y + (1 - v_ratio) * plottable_height
-                    
-                    if prev_x is not None and prev_y is not None:
-                        painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
-                    prev_x, prev_y = x, y
-                
-                # 2. 红色曲线：i(t) = 10-0.04t
-                painter.setPen(QPen(QColor(255, 0, 0), 2))  # 红色，线宽2
-                
-                # 生成并绘制i(t)曲线
-                prev_x, prev_y = None, None
-                for i in range(resolution + 1):
-                    t = t_min + (i / resolution) * (t_max - t_min)
-                    i_val = 10 - 0.04 * t
-                    # 确保值在范围内
-                    i_val = max(i_min, min(i_max, i_val))
-                    # 计算坐标
-                    # T scale: mapped to 0-1 ratio
-                    t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
-                    # I scale: mapped to 0-1 ratio
-                    i_ratio = (i_val - i_min) / (i_max - i_min)
-                    x = plottable_x + t_ratio * plottable_width
-                    y = plottable_y + (1 - i_ratio) * plottable_height
-                    
-                    if prev_x is not None and prev_y is not None:
-                        painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
-                    prev_x, prev_y = x, y
-                
-                # 3. 橙色曲线：p(t) = 10+0.16t
-                painter.setPen(QPen(QColor(255, 165, 0), 2))  # 橙色，线宽2
-                
-                # 生成并绘制p(t)曲线
-                prev_x, prev_y = None, None
-                for i in range(resolution + 1):
-                    t = t_min + (i / resolution) * (t_max - t_min)
-                    p = 10 + 0.16 * t
-                    # 确保值在范围内
-                    p = max(p_min, min(p_max, p))
-                    # 计算坐标
-                    # T scale: mapped to 0-1 ratio
-                    t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
-                    # P scale: mapped to 0-1 ratio
-                    p_ratio = (p - p_min) / (p_max - p_min)
-                    x = plottable_x + t_ratio * plottable_width
-                    y = plottable_y + (1 - p_ratio) * plottable_height
-                    
-                    if prev_x is not None and prev_y is not None:
-                        painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
-                    prev_x, prev_y = x, y
+
             
             # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
             dashed_pen = QPen(QColor(200, 200, 200), 1)
@@ -2087,6 +2023,14 @@ class DL24App(QMainWindow):
             # 刷新整个图形
         self.display_widget.update()
     
+    def update_t_scale(self, new_max):
+        """更新T刻度范围"""
+        if hasattr(self, 'scale_line4'):
+            current_min = self.scale_line4.min_value
+            self.scale_line4.set_range(current_min, new_max)
+            self.scale_line4.update()
+            self.display_widget.update()
+    
     def on_scale_double_click(self, scale_widget):
         # 双击刻度线修改范围
         current_min = scale_widget.min_value
@@ -2101,6 +2045,15 @@ class DL24App(QMainWindow):
                 scale_widget.set_range(new_min, new_max)
                 # 强制刷新显示
                 scale_widget.update()
+                
+                # 检查是否为T scale
+                if hasattr(scale_widget, 'scale_type') and scale_widget.scale_type == "T":
+                    # 检查RunTime是否大于等于Tmax
+                    global RunTime
+                    if RunTime >= new_max:
+                        # 自动调整Tmax为RunTime + 60
+                        new_tmax = RunTime + 60
+                        self.update_t_scale(new_tmax)
         
     def on_resize(self, event):
         """窗口大小变化时更新显示widget的位置和大小"""
@@ -2619,6 +2572,14 @@ class DL24App(QMainWindow):
                         # 计算RunTime
                         global RunTime
                         RunTime = self.S + self.M * 60 + self.H * 3600
+                        
+                        # 检查RunTime是否大于等于Tmax
+                        if hasattr(self, 'scale_line4'):
+                            tmax = self.scale_line4.max_value
+                            if RunTime >= tmax:
+                                # 自动调整Tmax为RunTime + 60
+                                new_tmax = RunTime + 60
+                                self.update_t_scale(new_tmax)
                         results['timer'] = (response[2] << 16) | (response[3] << 8) | response[4]
                     elif query_name == 'ReadSmAh':
                         results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
