@@ -29,6 +29,9 @@ MosT = 0.0  # Initial temperature
 # Global runtime variable
 RunTime = 0  # Initial runtime in seconds
 
+# X resolution for curve plotting
+XResolution = 300
+
 # 版本号管理
 VERSION = "0.0.81"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -243,26 +246,13 @@ class OverlayWidget(QWidget):
             
 
             
-            # 绘制三条曲线
-            if self.show_curves:
-                # 定义曲线参数
-                t_min = 0
-                t_max = 250
-                resolution = 300
-                
+            # 绘制V曲线
+            if self.show_curves and self.main_window:
                 # 获取实际刻度值
                 try:
                     # V scale (scale_line2)
                     v_min = self.main_window.scale_line2.min_value
                     v_max = self.main_window.scale_line2.max_value
-                    
-                    # I scale (scale_line3)
-                    i_min = self.main_window.scale_line3.min_value
-                    i_max = self.main_window.scale_line3.max_value
-                    
-                    # P scale (scale_line)
-                    p_min = self.main_window.scale_line.min_value
-                    p_max = self.main_window.scale_line.max_value
                     
                     # T scale (scale_line4)
                     t_scale_min = self.main_window.scale_line4.min_value
@@ -270,10 +260,41 @@ class OverlayWidget(QWidget):
                 except Exception:
                     #  fallback to default values if scale widgets not available
                     v_min, v_max = 2, 5
-                    i_min, i_max = 0, 10
-                    p_min, p_max = 0, 50
                     t_scale_min, t_scale_max = 0, 300
                 
+                # 设置裁剪区域，确保曲线不超出边界
+                painter.setClipRect(int(plottable_x), int(plottable_y), int(plottable_width), int(plottable_height))
+                
+                # 绘制V曲线
+                painter.setPen(QPen(ColorV, 2))  # 使用ColorV颜色，线宽2
+                
+                # 获取电压数据
+                if hasattr(self.main_window, 'data'):
+                    time_data = self.main_window.data.get('time', [])
+                    voltage_data = self.main_window.data.get('V', [])
+                    
+                    # 确保数据长度匹配
+                    data_points = min(len(time_data), len(voltage_data))
+                    if data_points > 1:
+                        prev_x, prev_y = None, None
+                        
+                        for i in range(data_points):
+                            t = time_data[i]
+                            v = voltage_data[i]
+                            
+                            # 计算坐标
+                            t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                            v_ratio = (v - v_min) / (v_max - v_min)
+                            x = plottable_x + t_ratio * plottable_width
+                            y = plottable_y + (1 - v_ratio) * plottable_height
+                            
+                            # 确保坐标在可绘制区域内
+                            x = max(plottable_x, min(plottable_x + plottable_width, x))
+                            y = max(plottable_y, min(plottable_y + plottable_height, y))
+                            
+                            if prev_x is not None and prev_y is not None:
+                                painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                            prev_x, prev_y = x, y
 
             
             # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
@@ -1268,6 +1289,8 @@ class DL24App(QMainWindow):
             success = self.SetResetCounters()
             if success:
                 print("Counters reset successful")
+                # 清除曲线数据
+                self.clear_plot()
             else:
                 print("Failed to reset counters")
             
@@ -2473,6 +2496,9 @@ class DL24App(QMainWindow):
         # 主循环函数
         self.main_loop_running = True
         
+        # 声明全局变量
+        global RunTime
+        
         import datetime
         current_time = datetime.datetime.now().strftime('%M:%S')
         print(f"MainLoop [{current_time}]")
@@ -2570,7 +2596,6 @@ class DL24App(QMainWindow):
                         self.M = response[3]  # 分钟
                         self.S = response[4]  # 秒
                         # 计算RunTime
-                        global RunTime
                         RunTime = self.S + self.M * 60 + self.H * 3600
                         
                         # 检查RunTime是否大于等于Tmax
@@ -2623,6 +2648,12 @@ class DL24App(QMainWindow):
             A = current / 1000 if current is not None else None
             W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
             
+            # 存储为实例变量，供update_data方法使用
+            self.V = V if V is not None else 4.0
+            self.A = A if A is not None else 1.0
+            
+
+            
             # 更新Zone2显示标签
             if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 6:
                 if V is not None:
@@ -2655,11 +2686,19 @@ class DL24App(QMainWindow):
 
             # 根据SLStatus更新OnOff按钮状态
             status = results.get('status')
+            # 存储状态为实例变量，供OverlayWidget使用
+            self.status = status if status is not None else 0
+            
             if status is not None:
                 if status == 1:
                     # SLStatus=1, 设备运行中
                     self.start_btn.setText("停止")
                     self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
+                    # 打印RunTime和V(Runtime)到控制台
+                    V = voltage / 1000 if voltage is not None else None
+                    print(f"{RunTime}     {V if V is not None else 'N/A'}")
+                    # 只有当SLStatus=1时才添加新数据点
+                    self.update_data()
                 else:
                     # SLStatus=0, 设备停止
                     self.start_btn.setText("启动")
@@ -2768,13 +2807,18 @@ class DL24App(QMainWindow):
                 self.status_indicator.setStyleSheet("color: #FFFF99; padding: 0px; margin: 0px;")
             
     def update_data(self):
+        # 只有当SLStatus=1时才更新数据
+        sl_status = getattr(self, 'status', 0)
+        if sl_status != 1:
+            return
+        
         # 从串口接收数据并更新
         # 目前使用固定值，实际应用中应该从串口读取数据
         current_time = time.time() - self.start_time
         
-        # 固定初始值
-        voltage = 4.0
-        current = 1.0
+        # 使用实际电压数据，如果没有则使用默认值
+        voltage = getattr(self, 'V', 4.0)  # 使用从MainLoop获取的电压值
+        current = getattr(self, 'A', 1.0)  # 使用从MainLoop获取的电流值
         power = voltage * current
         capacity = current * current_time / 3600 * 1000  # mAh
         energy = power * current_time / 3600  # Wh
