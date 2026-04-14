@@ -277,24 +277,28 @@ class OverlayWidget(QWidget):
                     data_points = min(len(time_data), len(voltage_data))
                     if data_points > 1:
                         prev_x, prev_y = None, None
+                        # 获取当前RunTime，只绘制RunTime之后的数据
+                        current_runtime = getattr(self.main_window, 'RunTime', 0)
                         
                         for i in range(data_points):
                             t = time_data[i]
-                            v = voltage_data[i]
-                            
-                            # 计算坐标
-                            t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
-                            v_ratio = (v - v_min) / (v_max - v_min)
-                            x = plottable_x + t_ratio * plottable_width
-                            y = plottable_y + (1 - v_ratio) * plottable_height
-                            
-                            # 确保坐标在可绘制区域内
-                            x = max(plottable_x, min(plottable_x + plottable_width, x))
-                            y = max(plottable_y, min(plottable_y + plottable_height, y))
-                            
-                            if prev_x is not None and prev_y is not None:
-                                painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
-                            prev_x, prev_y = x, y
+                            # 只绘制当前RunTime之后的数据
+                            if t >= current_runtime:
+                                v = voltage_data[i]
+                                
+                                # 计算坐标
+                                t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                                v_ratio = (v - v_min) / (v_max - v_min)
+                                x = plottable_x + t_ratio * plottable_width
+                                y = plottable_y + (1 - v_ratio) * plottable_height
+                                
+                                # 确保坐标在可绘制区域内
+                                x = max(plottable_x, min(plottable_x + plottable_width, x))
+                                y = max(plottable_y, min(plottable_y + plottable_height, y))
+                                
+                                if prev_x is not None and prev_y is not None:
+                                    painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                                prev_x, prev_y = x, y
 
             
             # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
@@ -2812,9 +2816,9 @@ class DL24App(QMainWindow):
         if sl_status != 1:
             return
         
-        # 从串口接收数据并更新
-        # 目前使用固定值，实际应用中应该从串口读取数据
-        current_time = time.time() - self.start_time
+        # 使用全局RunTime作为时间值
+        global RunTime
+        current_time = RunTime
         
         # 使用实际电压数据，如果没有则使用默认值
         voltage = getattr(self, 'V', 4.0)  # 使用从MainLoop获取的电压值
