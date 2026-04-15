@@ -1111,7 +1111,8 @@ class DL24App(QMainWindow):
                             # 更新旧值
                             row3_old_value = f"{voltage:.2f}"
                 except ValueError:
-                    print("Invalid voltage value")
+                    pass
+
                 # 恢复颜色并重新启动MainLoop
                 self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
                 if not self.main_loop_timer.isActive():
@@ -1251,7 +1252,8 @@ class DL24App(QMainWindow):
                             # 更新旧值
                             row4_old_value = f"{current:.2f}"
                 except ValueError:
-                    print("Invalid current value")
+                    pass
+
                 # 恢复颜色并重新启动MainLoop
                 self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
                 if not self.main_loop_timer.isActive():
@@ -2574,8 +2576,9 @@ class DL24App(QMainWindow):
                 self.QueryTimedOut = 0
             
             # 设置参数
-            TTimeOut = 0.1  # 100ms
-            TDelay = 0.001  # 1ms
+            TTimeOut = 0.12  # 120ms
+            TDelay = 0.005  # 5ms
+            THold = 0.07  # 70ms
             
             # 1. 开始查询序列前的准备
             # 1.1 清除接收缓冲区
@@ -2601,16 +2604,31 @@ class DL24App(QMainWindow):
             # 存储查询结果
             results = {}
             
+            # 存储之前的值，用于超时情况
+            previous_values = {
+                'status': getattr(self, 'previous_status', None),
+                'voltage': getattr(self, 'previous_voltage', None),
+                'current': getattr(self, 'previous_current', None),
+                'energy': getattr(self, 'previous_energy', None),
+                'capacity': getattr(self, 'previous_capacity', None),
+                'most': getattr(self, 'previous_most', None),
+                'iset': getattr(self, 'previous_iset', None),
+                'vset': getattr(self, 'previous_vset', None),
+                'tset': getattr(self, 'previous_tset', None)
+            }
+            
             # 跟踪ReadLStatus的次数
             readlstatus_count = 0
             
             for query_name, command, third_byte in queries:
-                # 2.2.1 清除接收缓冲区
-                self.serial_buffer.clear()
                 # 2.2.2 发送查询
                 self.send_data(command)
-                # 2.2.3 等待响应，超时时间为TTimeOut
+                # 2.2.3 开始计时，超时时间为TTimeOut
                 start_time = time.time()
+                # 2.2.2.1 等待THold时间
+                time.sleep(THold)
+                # 2.2.1 清除接收缓冲区
+                self.serial_buffer.clear()
                 response = None
                 while time.time() - start_time < TTimeOut:
                     if hasattr(self.serial_port, 'in_waiting'):
@@ -2685,13 +2703,27 @@ class DL24App(QMainWindow):
                 # 2.2.5 延迟TDelay并移至下一个查询
                 time.sleep(TDelay)
             
-            # 分配变量
-            energy = results.get('energy')
-            capacity = results.get('capacity')
-            iset = results.get('iset')
-            vset = results.get('vset')
-            voltage = results.get('voltage')
-            current = results.get('current')
+            # 分配变量，使用之前的值如果超时
+            energy = results.get('energy', previous_values['energy'])
+            capacity = results.get('capacity', previous_values['capacity'])
+            iset = results.get('iset', previous_values['iset'])
+            vset = results.get('vset', previous_values['vset'])
+            voltage = results.get('voltage', previous_values['voltage'])
+            current = results.get('current', previous_values['current'])
+            status = results.get('status', previous_values['status'])
+            most = results.get('most', previous_values['most'])
+            tset = results.get('tset', previous_values['tset'])
+            
+            # 存储当前值为下一次的之前值
+            self.previous_status = status
+            self.previous_voltage = voltage
+            self.previous_current = current
+            self.previous_energy = energy
+            self.previous_capacity = capacity
+            self.previous_most = most
+            self.previous_iset = iset
+            self.previous_vset = vset
+            self.previous_tset = tset
             
             Wh = energy / 1000 if energy is not None else None
             mAh = capacity if capacity is not None else None
@@ -2739,8 +2771,6 @@ class DL24App(QMainWindow):
             if hasattr(self, 'temperature_label'):
                 self.update_temperature_display()
 
-            # 根据SLStatus更新OnOff按钮状态
-            status = results.get('status')
             # 存储状态为实例变量，供OverlayWidget使用
             self.status = status if status is not None else 0
             
@@ -2751,7 +2781,7 @@ class DL24App(QMainWindow):
                     self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
                     # 打印RunTime和V(Runtime)到控制台
                     V = voltage / 1000 if voltage is not None else None
-                    print(f"{RunTime}     {V if V is not None else 'N/A'}")
+
                     # 只有当SLStatus=1时才添加新数据点
                     self.update_data()
                 else:
