@@ -246,7 +246,7 @@ class OverlayWidget(QWidget):
             
 
             
-            # 绘制V曲线
+            # 绘制VIP曲线
             if self.show_curves and self.main_window:
                 # 获取实际刻度值
                 try:
@@ -254,51 +254,102 @@ class OverlayWidget(QWidget):
                     v_min = self.main_window.scale_line2.min_value
                     v_max = self.main_window.scale_line2.max_value
                     
+                    # I scale (scale_line3)
+                    i_min = self.main_window.scale_line3.min_value
+                    i_max = self.main_window.scale_line3.max_value
+                    
+                    # P scale (scale_line)
+                    p_min = self.main_window.scale_line.min_value
+                    p_max = self.main_window.scale_line.max_value
+                    
                     # T scale (scale_line4)
                     t_scale_min = self.main_window.scale_line4.min_value
                     t_scale_max = self.main_window.scale_line4.max_value
                 except Exception:
                     #  fallback to default values if scale widgets not available
                     v_min, v_max = 2, 5
+                    i_min, i_max = 0, 10
+                    p_min, p_max = 0, 50
                     t_scale_min, t_scale_max = 0, 300
                 
                 # 设置裁剪区域，确保曲线不超出边界
                 painter.setClipRect(int(plottable_x), int(plottable_y), int(plottable_width), int(plottable_height))
                 
-                # 绘制V曲线
-                painter.setPen(QPen(ColorV, 2))  # 使用ColorV颜色，线宽2
-                
-                # 获取电压数据
+                # 获取数据
                 if hasattr(self.main_window, 'data'):
                     time_data = self.main_window.data.get('time', [])
                     voltage_data = self.main_window.data.get('V', [])
+                    current_data = self.main_window.data.get('I', [])
+                    power_data = self.main_window.data.get('P', [])
                     
                     # 确保数据长度匹配
-                    data_points = min(len(time_data), len(voltage_data))
+                    data_points = min(len(time_data), len(voltage_data), len(current_data), len(power_data))
                     if data_points > 1:
-                        prev_x, prev_y = None, None
                         # 获取当前RunTime，只绘制RunTime之后的数据
                         current_runtime = getattr(self.main_window, 'RunTime', 0)
                         
-                        for i in range(data_points):
-                            t = time_data[i]
-                            # 只绘制当前RunTime之后的数据
-                            if t >= current_runtime:
-                                v = voltage_data[i]
-                                
-                                # 计算坐标
-                                t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
-                                v_ratio = (v - v_min) / (v_max - v_min)
-                                x = plottable_x + t_ratio * plottable_width
-                                y = plottable_y + (1 - v_ratio) * plottable_height
-                                
-                                # 确保坐标在可绘制区域内
-                                x = max(plottable_x, min(plottable_x + plottable_width, x))
-                                y = max(plottable_y, min(plottable_y + plottable_height, y))
-                                
-                                if prev_x is not None and prev_y is not None:
-                                    painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
-                                prev_x, prev_y = x, y
+                        # 绘制V曲线（蓝色）
+                        try:
+                            if hasattr(self.main_window, 'CheckboxV') and self.main_window.CheckboxV.isChecked():
+                                painter.setPen(QPen(ColorV, 2))
+                                prev_x, prev_y = None, None
+                                for i in range(data_points):
+                                    t = time_data[i]
+                                    if t >= current_runtime:
+                                        v = voltage_data[i]
+                                        t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                                        v_ratio = (v - v_min) / (v_max - v_min)
+                                        x = plottable_x + t_ratio * plottable_width
+                                        y = plottable_y + (1 - v_ratio) * plottable_height
+                                        x = max(plottable_x, min(plottable_x + plottable_width, x))
+                                        y = max(plottable_y, min(plottable_y + plottable_height, y))
+                                        if prev_x is not None and prev_y is not None:
+                                            painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                                        prev_x, prev_y = x, y
+                        except Exception:
+                            pass
+                        
+                        # 绘制I曲线（红色）
+                        try:
+                            if hasattr(self.main_window, 'CheckboxA') and self.main_window.CheckboxA.isChecked():
+                                painter.setPen(QPen(ColorA, 2))
+                                prev_x, prev_y = None, None
+                                for i in range(data_points):
+                                    t = time_data[i]
+                                    if t >= current_runtime:
+                                        i_val = current_data[i]
+                                        t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                                        i_ratio = (i_val - i_min) / (i_max - i_min)
+                                        x = plottable_x + t_ratio * plottable_width
+                                        y = plottable_y + (1 - i_ratio) * plottable_height
+                                        x = max(plottable_x, min(plottable_x + plottable_width, x))
+                                        y = max(plottable_y, min(plottable_y + plottable_height, y))
+                                        if prev_x is not None and prev_y is not None:
+                                            painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                                        prev_x, prev_y = x, y
+                        except Exception:
+                            pass
+                        
+                        # 绘制P曲线（橙色）
+                        try:
+                            if hasattr(self.main_window, 'CheckboxP') and self.main_window.CheckboxP.isChecked():
+                                painter.setPen(QPen(ColorP, 2))
+                                prev_x, prev_y = None, None
+                                for i in range(data_points):
+                                    t = time_data[i]
+                                    if t >= current_runtime:
+                                        p = power_data[i]
+                                        t_ratio = (t - t_scale_min) / (t_scale_max - t_scale_min)
+                                        p_ratio = (p - p_min) / (p_max - p_min)
+                                        x = plottable_x + t_ratio * plottable_width
+                                        y = plottable_y + (1 - p_ratio) * plottable_height
+                                        x = max(plottable_x, min(plottable_x + plottable_width, x))
+                                        y = max(plottable_y, min(plottable_y + plottable_height, y))
+                                        if prev_x is not None and prev_y is not None:
+                                            painter.drawLine(int(prev_x), int(prev_y), int(x), int(y))
+                                        prev_x, prev_y = x, y
+                        except Exception:
+                            pass
 
             
             # 设置虚线笔用于网格线，使用自定义虚线模式使其更稀疏
