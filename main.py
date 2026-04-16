@@ -513,9 +513,9 @@ class ScaleLineWidget(QWidget):
                 painter.setPen(QPen(self.color, 1))  # 使用与刻度线相同的颜色
                 # 对于左指向标记，调整标签位置
                 if self.marker_direction == "left":
-                    painter.drawText(scale_line_x - 20, start_y - 25, self.label)  # 向上移动一行，确保标签完全可见
+                    painter.drawText(scale_line_x - 20, start_y - 15, self.label)  # 向上移动一行，确保标签完全可见
                 else:
-                    painter.drawText(scale_line_x - 10, start_y - 25, self.label)  # 向上移动一行，确保标签完全可见
+                    painter.drawText(scale_line_x + 5, start_y - 15, self.label)  # 向上移动一行，确保标签完全可见
                 
                 # 绘制标记和数字
                 painter.setFont(self.font)
@@ -901,7 +901,17 @@ class DL24App(QMainWindow):
         
         # 2. 显示widget (Zone 2)
         self.zone2_widget = QWidget(main_widget)
-        # 移除背景颜色和边框
+        # 添加3D风格边框
+        self.zone2_widget.setStyleSheet("""
+            #zone2 {
+                border: 2px solid;
+                border-top-color: #ffffff;
+                border-left-color: #ffffff;
+                border-right-color: #cccccc;
+                border-bottom-color: #cccccc;
+            }
+        """)
+        self.zone2_widget.setObjectName("zone2")
         
         # 创建Zone2的布局为垂直布局
         self.zone2_layout = QVBoxLayout(self.zone2_widget)
@@ -917,6 +927,17 @@ class DL24App(QMainWindow):
         
         # 3. 显示 widget (Zone 3)
         self.zone3_widget = QWidget(main_widget)
+        # 添加3D风格边框
+        self.zone3_widget.setStyleSheet("""
+            #zone3 {
+                border: 2px solid;
+                border-top-color: #ffffff;
+                border-left-color: #ffffff;
+                border-right-color: #cccccc;
+                border-bottom-color: #cccccc;
+            }
+        """)
+        self.zone3_widget.setObjectName("zone3")
 
         # 设置 Zone3 的字体大小为原来的 1.875 倍 (1.5 * 1.25)
         zone3_font = QFont("Courier New", 26, QFont.Light)
@@ -1018,10 +1039,17 @@ class DL24App(QMainWindow):
         self.row2_combo.setCurrentIndex(0)  # 默认值为CC
         # 禁用下拉列表，只允许CC模式
         self.row2_combo.setEnabled(False)
+        # 添加到布局并保持左对齐
+        # 先获取内容宽度，然后减少1px
+        content_width = self.row2_combo.fontMetrics().horizontalAdvance("CC - 恒电流放电") + 30  # 30px for dropdown arrow and padding
+        self.row2_combo.setFixedWidth(content_width - 1)
+        # 添加下拉列表
         row2_col3_layout.addWidget(self.row2_combo)
+        # 添加右侧空间以保持左对齐
+        row2_col3_layout.addStretch()
         
         row2_layout.addWidget(row2_col3)
-        row2_layout.setStretch(2, 60)  # 60%
+        row2_layout.setStretch(2, 60)  # 恢复到60%宽度
         
         # 设置行高
         row2_widget = QWidget()
@@ -1316,7 +1344,17 @@ class DL24App(QMainWindow):
         
         # 4. 显示 widget (Zone 4)
         self.zone4_widget = QWidget(main_widget)
-        self.zone4_widget.setStyleSheet("border: none;")  # 移除边框
+        # 添加3D风格边框
+        self.zone4_widget.setStyleSheet("""
+            #zone4 {
+                border: 2px solid;
+                border-top-color: #ffffff;
+                border-left-color: #ffffff;
+                border-right-color: #cccccc;
+                border-bottom-color: #cccccc;
+            }
+        """)
+        self.zone4_widget.setObjectName("zone4")
         
         # 清除数据按钮
         self.clear_data_btn = QPushButton("清除数据")
@@ -2100,7 +2138,7 @@ class DL24App(QMainWindow):
         self.scale_line = ScaleLineWidget(
             main_widget, 
             min_value=0, 
-            max_value=50, 
+            max_value=10, 
             color=ColorP,  # 使用全局变量
             label="(W)",
             scale_type="P"
@@ -2131,7 +2169,7 @@ class DL24App(QMainWindow):
         self.scale_line3 = ScaleLineWidget(
             main_widget, 
             min_value=0, 
-            max_value=10, 
+            max_value=5, 
             color=ColorA,  # 使用全局变量
             label="(A)", 
             marker_direction="left",  # 标记指向左侧，与V Scale一致
