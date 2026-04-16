@@ -1536,8 +1536,159 @@ class DL24App(QMainWindow):
         zone6_row1_layout.addWidget(self.zone6_col3)
         zone6_row1_layout.setStretch(2, 20)  # 20%
         
-        # 列4：40%宽度
+        # 列4：40%宽度，添加电池串数单选按钮
         zone6_row1_col4 = QWidget()
+        zone6_row1_col4_layout = QHBoxLayout(zone6_row1_col4)
+        zone6_row1_col4_layout.setContentsMargins(0, 0, 0, 0)  # 0边距
+        zone6_row1_col4_layout.setSpacing(10)  # 10px间距
+        
+        # 创建单选按钮组
+        from PySide6.QtWidgets import QRadioButton, QButtonGroup
+        
+        # 初始化全局变量
+        global Is1S, Is2S, Is3S, Is4S
+        Is1S = 0
+        Is2S = 0  # 初始全部未选中
+        Is3S = 0
+        Is4S = 0
+        
+        # 创建按钮组，允许取消选择
+        self.battery_group = QButtonGroup()
+        self.battery_group.setExclusive(False)  # 允许取消选择
+        
+        # 创建单选按钮
+        font = QFont("SimHei", 12)  # 黑体，12px
+        
+        self.radio_1s = QRadioButton("1S")
+        self.radio_1s.setFont(font)
+        self.radio_1s.setStyleSheet("color: purple;")
+        self.radio_1s.setChecked(Is1S == 1)
+        self.battery_group.addButton(self.radio_1s)
+        
+        self.radio_2s = QRadioButton("2S")
+        self.radio_2s.setFont(font)
+        self.radio_2s.setStyleSheet("color: purple;")
+        self.radio_2s.setChecked(Is2S == 1)
+        self.battery_group.addButton(self.radio_2s)
+        
+        self.radio_3s = QRadioButton("3S")
+        self.radio_3s.setFont(font)
+        self.radio_3s.setStyleSheet("color: purple;")
+        self.radio_3s.setChecked(Is3S == 1)
+        self.battery_group.addButton(self.radio_3s)
+        
+        self.radio_4s = QRadioButton("4S")
+        self.radio_4s.setFont(font)
+        self.radio_4s.setStyleSheet("color: purple;")
+        self.radio_4s.setChecked(Is4S == 1)
+        self.battery_group.addButton(self.radio_4s)
+        
+        # 连接信号
+        def update_battery_cells(button=None, checked=False):
+            global Is1S, Is2S, Is3S, Is4S
+            
+            # 处理单选逻辑
+            if button:
+                # 如果按钮被选中
+                if checked:
+                    # 取消所有其他按钮的选择
+                    for btn in self.battery_group.buttons():
+                        if btn != button:
+                            btn.setChecked(False)
+                # 如果按钮被取消选择，确保所有按钮都未选中
+                else:
+                    # 检查是否还有其他按钮被选中
+                    any_checked = False
+                    for btn in self.battery_group.buttons():
+                        if btn != button and btn.isChecked():
+                            any_checked = True
+                            break
+                    # 如果没有其他按钮被选中，确保当前按钮也未选中
+                    if not any_checked:
+                        button.setChecked(False)
+            
+            # 更新全局变量
+            Is1S = 1 if self.radio_1s.isChecked() else 0
+            Is2S = 1 if self.radio_2s.isChecked() else 0
+            Is3S = 1 if self.radio_3s.isChecked() else 0
+            Is4S = 1 if self.radio_4s.isChecked() else 0
+            
+            # 打印调试信息
+            print(f"Is1S={Is1S}, Is2S={Is2S}, Is3S={Is3S}, Is4S={Is4S}")
+            
+            # 更新Vmax和Vmin
+            if Is1S:
+                # 1S: Vmax=4.5, Vmin=2
+                print("Setting V scale for 1S")
+                if hasattr(self, 'scale_line2'):
+                    print(f"Current scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.max_value = 4.5
+                    self.scale_line2.min_value = 2
+                    print(f"New scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.update()
+                    # 强制重绘
+                    if hasattr(self, 'zone1_widget'):
+                        self.zone1_widget.update()
+                    # 强制主窗口重绘
+                    if hasattr(self, 'update'):
+                        self.update()
+            elif Is2S:
+                # 2S: Vmax=9, Vmin=4
+                print("Setting V scale for 2S")
+                if hasattr(self, 'scale_line2'):
+                    print(f"Current scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.max_value = 9
+                    self.scale_line2.min_value = 4
+                    print(f"New scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.update()
+                    # 强制重绘
+                    if hasattr(self, 'zone1_widget'):
+                        self.zone1_widget.update()
+                    # 强制主窗口重绘
+                    if hasattr(self, 'update'):
+                        self.update()
+            elif Is3S:
+                # 3S: Vmax=13.5, Vmin=6
+                print("Setting V scale for 3S")
+                if hasattr(self, 'scale_line2'):
+                    print(f"Current scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.max_value = 13.5
+                    self.scale_line2.min_value = 6
+                    print(f"New scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.update()
+                    # 强制重绘
+                    if hasattr(self, 'zone1_widget'):
+                        self.zone1_widget.update()
+                    # 强制主窗口重绘
+                    if hasattr(self, 'update'):
+                        self.update()
+            elif Is4S:
+                # 4S: Vmax=18, Vmin=8
+                print("Setting V scale for 4S")
+                if hasattr(self, 'scale_line2'):
+                    print(f"Current scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.max_value = 18
+                    self.scale_line2.min_value = 8
+                    print(f"New scale: min={self.scale_line2.min_value}, max={self.scale_line2.max_value}")
+                    self.scale_line2.update()
+                    # 强制重绘
+                    if hasattr(self, 'zone1_widget'):
+                        self.zone1_widget.update()
+                    # 强制主窗口重绘
+                    if hasattr(self, 'update'):
+                        self.update()
+        
+        self.radio_1s.toggled.connect(lambda checked, btn=self.radio_1s: update_battery_cells(btn, checked))
+        self.radio_2s.toggled.connect(lambda checked, btn=self.radio_2s: update_battery_cells(btn, checked))
+        self.radio_3s.toggled.connect(lambda checked, btn=self.radio_3s: update_battery_cells(btn, checked))
+        self.radio_4s.toggled.connect(lambda checked, btn=self.radio_4s: update_battery_cells(btn, checked))
+        
+        # 添加单选按钮到布局
+        zone6_row1_col4_layout.addWidget(self.radio_1s)
+        zone6_row1_col4_layout.addWidget(self.radio_2s)
+        zone6_row1_col4_layout.addWidget(self.radio_3s)
+        zone6_row1_col4_layout.addWidget(self.radio_4s)
+        
         zone6_row1_layout.addWidget(zone6_row1_col4)
         zone6_row1_layout.setStretch(3, 40)  # 40%
         
@@ -1899,9 +2050,9 @@ class DL24App(QMainWindow):
             
             # 创建参数值标签
             value_label = QLabel("00.000" if i == 0 else "00.000" if i == 1 else "0000.0" if i == 2 else "00000" if i == 3 else "000.00" if i == 4 else "")
-            # 为第6行（耗时）设置不同的字体大小
-            font_size = 20 if i == 5 else 24
-            font = QFont("Arial", font_size)  # Arial
+            # 所有行使用相同的字体大小
+            font_size = 26
+            font = QFont("Calibri Light", font_size)  # Calibri Light
             value_label.setFont(font)
             value_label.setAlignment(Qt.AlignCenter)
             value_label.setContentsMargins(0, 0, 0, 0)  # 0边距
