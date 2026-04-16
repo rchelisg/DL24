@@ -1013,7 +1013,7 @@ class DL24App(QMainWindow):
         self.row2_combo = QComboBox()
         font = QFont("SimHei", 12)  # 黑体，12px
         self.row2_combo.setFont(font)
-        self.row2_combo.setStyleSheet("border: none; padding: 2px; color: black;")
+        self.row2_combo.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
         self.row2_combo.addItem("CC - 恒电流放电", 1)
         self.row2_combo.setCurrentIndex(0)  # 默认值为CC
         # 禁用下拉列表，只允许CC模式
@@ -1071,7 +1071,7 @@ class DL24App(QMainWindow):
         self.row3_entry.setText("0.00")
         self.row3_entry.setPlaceholderText("0.00")
         self.row3_entry.setAlignment(Qt.AlignCenter)
-        self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+        self.row3_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
         
         # 输入框事件处理
         row3_old_value = ""
@@ -1083,7 +1083,7 @@ class DL24App(QMainWindow):
                 self.main_loop_timer.stop()
             # 保存当前值
             row3_old_value = self.row3_entry.text()
-            self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black; background-color: yellow;")
+            self.row3_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black; background-color: yellow;")
             # 清空输入框并设置光标位置
             self.row3_entry.clear()
             self.row3_entry.setCursorPosition(0)
@@ -1091,7 +1091,7 @@ class DL24App(QMainWindow):
         def on_row3_focus_out():
             # 失去焦点时恢复颜色和值
             nonlocal row3_old_value
-            self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+            self.row3_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
             # 恢复旧值
             self.row3_entry.setText(row3_old_value)
             # 重新启动MainLoop
@@ -1114,14 +1114,14 @@ class DL24App(QMainWindow):
                     pass
 
                 # 恢复颜色并重新启动MainLoop
-                self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                self.row3_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
                 if not self.main_loop_timer.isActive():
                     self.main_loop_timer.start(1000)
                 # 移除焦点
                 self.row3_entry.clearFocus()
             elif event.key() == Qt.Key_Escape:
                 # 按ESC键取消编辑
-                self.row3_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                self.row3_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
                 # 恢复旧值
                 self.row3_entry.setText(row3_old_value)
                 if not self.main_loop_timer.isActive():
@@ -1212,7 +1212,7 @@ class DL24App(QMainWindow):
         self.row4_entry.setText("0.00")
         self.row4_entry.setPlaceholderText("0.00")
         self.row4_entry.setAlignment(Qt.AlignCenter)
-        self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+        self.row4_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
         
         # 输入框事件处理
         row4_old_value = ""
@@ -1224,7 +1224,7 @@ class DL24App(QMainWindow):
                 self.main_loop_timer.stop()
             # 保存当前值
             row4_old_value = self.row4_entry.text()
-            self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black; background-color: yellow;")
+            self.row4_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black; background-color: yellow;")
             # 清空输入框并设置光标位置
             self.row4_entry.clear()
             self.row4_entry.setCursorPosition(0)
@@ -1232,7 +1232,7 @@ class DL24App(QMainWindow):
         def on_row4_focus_out():
             # 失去焦点时恢复颜色和值
             nonlocal row4_old_value
-            self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+            self.row4_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
             # 恢复旧值
             self.row4_entry.setText(row4_old_value)
             # 重新启动MainLoop
@@ -1255,14 +1255,14 @@ class DL24App(QMainWindow):
                     pass
 
                 # 恢复颜色并重新启动MainLoop
-                self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                self.row4_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
                 if not self.main_loop_timer.isActive():
                     self.main_loop_timer.start(1000)
                 # 移除焦点
                 self.row4_entry.clearFocus()
             elif event.key() == Qt.Key_Escape:
                 # 按ESC键取消编辑
-                self.row4_entry.setStyleSheet("border: none; padding: 2px; color: black;")
+                self.row4_entry.setStyleSheet("border: 1px solid #333333; padding: 2px; color: black;")
                 # 恢复旧值
                 self.row4_entry.setText(row4_old_value)
                 if not self.main_loop_timer.isActive():
@@ -1698,7 +1698,7 @@ class DL24App(QMainWindow):
         
         # 下拉菜单
         self.port_combo = QComboBox()
-        self.port_combo.setStyleSheet("border: none; background-color: white; padding: 0px; margin: 0px; color: black; font-size: 16px;")
+        self.port_combo.setStyleSheet("border: 1px solid #333333; background-color: white; padding: 0px; margin: 0px; color: black; font-size: 16px;")
         self.port_combo.setMinimumHeight(33)  # 减少5%高度 (35 * 0.95 = 33.25)
         self.port_combo.setMaximumHeight(33)  # 减少5%高度
         self.port_combo.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)  # 宽度适应内容，高度固定
@@ -1721,7 +1721,7 @@ class DL24App(QMainWindow):
         self.refresh_btn.setMinimumSize(35, 35)  # 固定高度
         self.refresh_btn.setMaximumSize(35, 35)  # 固定高度
         self.refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # 固定大小
-        self.refresh_btn.setStyleSheet("border: none; background-color: #0078D7; font-size: 20px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
+        self.refresh_btn.setStyleSheet("border: 1px solid #333333; background-color: #0078D7; font-size: 20px; color: white; padding: 0px; margin: 0px; font-weight: bold;")
         self.refresh_btn.clicked.connect(self.refresh_serial_ports)
         self.refresh_btn.setToolTip("Refresh serial ports")
         
@@ -1746,7 +1746,7 @@ class DL24App(QMainWindow):
         self.connect_btn.setMaximumHeight(35)  # 固定高度
         self.connect_btn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)  # 不填充宽度，使用首选大小
         self.connect_btn.setMaximumWidth(100)  # 减少20%宽度
-        self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
+        self.connect_btn.setStyleSheet("border: 1px solid #333333; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 16px;")
         self.connect_btn.setToolTip("连接到串口")
         self.connect_btn.clicked.connect(self.toggle_connection)
         zone4_row2_col4_layout.addWidget(self.connect_btn)
@@ -2558,7 +2558,7 @@ class DL24App(QMainWindow):
         
         import datetime
         current_time = datetime.datetime.now().strftime('%M:%S')
-        print(f"MainLoop [{current_time}]")
+        print(f"MainLoop [{current_time}]", end='\r')
         
         # 更新状态指示器为红色（MainLoop执行中）
         if hasattr(self, 'status_indicator') and self.is_connected:
@@ -2575,10 +2575,79 @@ class DL24App(QMainWindow):
             if not hasattr(self, 'QueryTimedOut'):
                 self.QueryTimedOut = 0
             
-            # 设置参数
-            TTimeOut = 0.12  # 120ms
-            TDelay = 0.005  # 5ms
-            THold = 0.07  # 70ms
+            # 使用实例变量存储参数，方便运行时调整
+            if not hasattr(self, 'TTimeOut'):
+                self.TTimeOut = 0.1  # 100ms
+            if not hasattr(self, 'TDelay'):
+                self.TDelay = 0.0  # 0ms
+            if not hasattr(self, 'THold'):
+                self.THold = 0.018  # 18ms
+            
+            # 检查控制台输入（Windows兼容）
+            import sys
+            try:
+                import msvcrt
+                if msvcrt.kbhit():
+                    input_line = sys.stdin.readline().strip()
+                    if input_line.lower() == 't':
+                        # 显示当前值（毫秒）
+                        print(f"Current values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
+                    elif input_line.lower().startswith('t '):
+                        parts = input_line.split()
+                        if len(parts) == 4:
+                            try:
+                                # 输入为毫秒，转换为秒
+                                new_ttimeout_ms = int(parts[1])
+                                new_thold_ms = int(parts[2])
+                                new_tdelay_ms = int(parts[3])
+                                
+                                new_ttimeout = new_ttimeout_ms / 1000
+                                new_thold = new_thold_ms / 1000
+                                new_tdelay = new_tdelay_ms / 1000
+                                
+                                # 显示旧值和新值（毫秒）
+                                print(f"Old values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
+                                
+                                # 更新值
+                                self.TTimeOut = new_ttimeout
+                                self.THold = new_thold
+                                self.TDelay = new_tdelay
+                                
+                                print(f"New values: TTimeOut={new_ttimeout_ms}ms, THold={new_thold_ms}ms, TDelay={new_tdelay_ms}ms")
+                            except ValueError:
+                                print("Invalid values. Usage: T <TTimeOut_ms> <THold_ms> <TDelay_ms>")
+            except ImportError:
+                # 非Windows系统使用select
+                import select
+                if select.select([sys.stdin], [], [], 0)[0]:
+                    input_line = sys.stdin.readline().strip()
+                    if input_line.lower() == 't':
+                        # 显示当前值（毫秒）
+                        print(f"Current values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
+                    elif input_line.lower().startswith('t '):
+                        parts = input_line.split()
+                        if len(parts) == 4:
+                            try:
+                                # 输入为毫秒，转换为秒
+                                new_ttimeout_ms = int(parts[1])
+                                new_thold_ms = int(parts[2])
+                                new_tdelay_ms = int(parts[3])
+                                
+                                new_ttimeout = new_ttimeout_ms / 1000
+                                new_thold = new_thold_ms / 1000
+                                new_tdelay = new_tdelay_ms / 1000
+                                
+                                # 显示旧值和新值（毫秒）
+                                print(f"Old values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
+                                
+                                # 更新值
+                                self.TTimeOut = new_ttimeout
+                                self.THold = new_thold
+                                self.TDelay = new_tdelay
+                                
+                                print(f"New values: TTimeOut={new_ttimeout_ms}ms, THold={new_thold_ms}ms, TDelay={new_tdelay_ms}ms")
+                            except ValueError:
+                                print("Invalid values. Usage: T <TTimeOut_ms> <THold_ms> <TDelay_ms>")
             
             # 1. 开始查询序列前的准备
             # 1.1 清除接收缓冲区
@@ -2626,11 +2695,15 @@ class DL24App(QMainWindow):
                 # 2.2.3 开始计时，超时时间为TTimeOut
                 start_time = time.time()
                 # 2.2.2.1 等待THold时间
-                time.sleep(THold)
-                # 2.2.1 清除接收缓冲区
+                time.sleep(self.THold)
+                # 2.2.1 清除接收缓冲区（包括串口缓冲区）
                 self.serial_buffer.clear()
+                # 清除串口缓冲区中的旧数据
+                if hasattr(self.serial_port, 'in_waiting'):
+                    while self.serial_port.in_waiting > 0:
+                        self.serial_port.read(self.serial_port.in_waiting)
                 response = None
-                while time.time() - start_time < TTimeOut:
+                while time.time() - start_time < self.TTimeOut:
                     if hasattr(self.serial_port, 'in_waiting'):
                         if self.serial_port.in_waiting > 0:
                             data = self.serial_port.read(self.serial_port.in_waiting)
@@ -2701,7 +2774,7 @@ class DL24App(QMainWindow):
                     print(f"Query timed out: 0x{third_byte:02X}")
                 
                 # 2.2.5 延迟TDelay并移至下一个查询
-                time.sleep(TDelay)
+                time.sleep(self.TDelay)
             
             # 分配变量，使用之前的值如果超时
             energy = results.get('energy', previous_values['energy'])
