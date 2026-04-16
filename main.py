@@ -795,13 +795,6 @@ class DisplayWidget(QWidget):
         try:
             # 显式填充背景为白色
             painter.fillRect(0, 0, width, height, QColor(255, 255, 255))
-            
-            # 绘制红色原点
-            origin_x = 0
-            origin_y = height
-            painter.setPen(QPen(QColor(255, 0, 0), 4))
-            painter.setBrush(QColor(255, 0, 0))
-            painter.drawEllipse(origin_x - 3, origin_y - 3, 6, 6)
         finally:
             painter.end()
         
@@ -2087,9 +2080,9 @@ class DL24App(QMainWindow):
             col3_layout.setSpacing(0)  # 0间距
             
             # 创建参数值标签
-            value_label = QLabel("00.000" if i == 0 else "00.000" if i == 1 else "0000.0" if i == 2 else "00000" if i == 3 else "000.00" if i == 4 else "")
-            # 所有行使用相同的字体大小
-            font_size = 26
+            value_label = QLabel("00.000" if i == 0 else "00.000" if i == 1 else "0000.0" if i == 2 else "00000" if i == 3 else "000.00" if i == 4 else "00:00:00")
+            # 行7（时间）使用字体大小24，其他行使用26
+            font_size = 24 if i == 5 else 26
             font = QFont("Calibri Light", font_size)  # Calibri Light
             value_label.setFont(font)
             value_label.setAlignment(Qt.AlignCenter)
@@ -2146,7 +2139,8 @@ class DL24App(QMainWindow):
         self.scale_line.setParent(main_widget)
         
         # 4. 温度显示widget
-        self.temperature_label = QLabel("0.0°C", main_widget)
+        global RunTime, MosT
+        self.temperature_label = QLabel(f"{RunTime}S   {MosT:.1f}°C", main_widget)
         font = QFont("Arial", 14)
         self.temperature_label.setFont(font)
         self.temperature_label.setStyleSheet("color: purple;")
