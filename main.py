@@ -154,6 +154,8 @@ class OverlayWidget(QWidget):
         self.zone1_label.setFixedSize(600, 60)  # 增加宽度以容纳20个中文字符
         self.zone1_label.setCursor(Qt.PointingHandCursor)
         self.zone1_label.mouseDoubleClickEvent = self.on_label_double_click
+        
+
     
     def mouseDoubleClickEvent(self, event):
         # 双击时隐藏曲线，恢复整个绘图区域
@@ -161,6 +163,7 @@ class OverlayWidget(QWidget):
         self.update()
     
     def mousePressEvent(self, event):
+        print("OverlayWidget mousePressEvent called")
         # 单击时重新绘制曲线
         self.show_curves = True
         self.update()
@@ -172,6 +175,28 @@ class OverlayWidget(QWidget):
     
     def set_main_window(self, main_window):
         self.main_window = main_window
+    
+    def capture_zone1_to_clipboard(self):
+        print("capture_zone1_to_clipboard called")
+        # 捕获Zone1的屏幕并保存到剪贴板
+        from PySide6.QtWidgets import QMessageBox
+        from PySide6.QtGui import QScreen
+        
+        # 获取父Widget（DisplayWidget）
+        display_widget = self.parent()
+        print(f"display_widget: {display_widget}")
+        if display_widget:
+            print("Capturing screenshot")
+            # 捕获整个DisplayWidget
+            screenshot = display_widget.grab()
+            print("Screenshot captured")
+            # 保存到剪贴板
+            clipboard = QApplication.clipboard()
+            clipboard.setImage(screenshot.toImage())
+            print("Screenshot saved to clipboard")
+            # 显示提示
+            print("Showing message box")
+            QMessageBox.information(self, "提示", "Screen Copied")
     
     def on_label_double_click(self, event):
         # 打开输入对话框让用户编辑标签内容
@@ -237,6 +262,8 @@ class OverlayWidget(QWidget):
             plottable_y = y + 10  # 顶部边距
             plottable_width = width - 30  # 宽度减去右侧边距
             plottable_height = height - 10  # 高度减去顶部边距
+            
+
             
 
             
@@ -418,7 +445,7 @@ class ScaleLineWidget(QWidget):
     
     def mouseDoubleClickEvent(self, event):
         # 检查点击位置是否在刻度线或标记区域内
-        pos = event.pos()
+        pos = event.position()
         
         # 计算实际刻度线位置
         if self.orientation == "vertical":
@@ -821,13 +848,7 @@ class DisplayWidget(QWidget):
         # 强制PlotWindow和覆盖层更新
         self.plot_window.update()
         self.overlay.update()
-        
-
-        
-
-        
-
-        
+    
 
     
     def update_info(self, info_text):
@@ -2678,7 +2699,7 @@ class DL24App(QMainWindow):
         
         self.scale_line4.set_width(scale4_width)
         self.scale_line4.setGeometry(int(scale4_x), int(scale4_y), int(scale4_width + 2 * self.scale_line4.padding), 100)
-        
+    
     def init_timer(self):
         # 数据更新定时器
         self.update_timer = QTimer()
@@ -3544,8 +3565,11 @@ class DL24App(QMainWindow):
         # 双击空白处清除曲线
         if event.button() == Qt.LeftButton:
             # 检查点击位置是否在曲线区域
-            pos = event.pos()
-            if self.display_widget.geometry().contains(pos):
+            pos = event.position()
+            # 转换QPointF为QPoint
+            from PySide6.QtCore import QPoint
+            pos_point = QPoint(int(pos.x()), int(pos.y()))
+            if self.display_widget.geometry().contains(pos_point):
                 # 使用屏幕坐标直接判断，避免坐标转换问题
                 plot_rect = self.display_widget.geometry()
                 # 计算曲线区域的中心点
