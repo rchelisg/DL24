@@ -2164,8 +2164,15 @@ class DL24App(QMainWindow):
         self.temperature_label = QLabel(f"{RunTime}S   {MosT:.1f}°C", main_widget)
         font = QFont("Arial", 14)
         self.temperature_label.setFont(font)
-        self.temperature_label.setStyleSheet("color: purple;")
+        self.temperature_label.setStyleSheet("color: #808080;")
         self.temperature_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
+        
+        # 添加绿色圆形按钮到主窗口
+        self.green_circle = QLabel(main_widget)
+        self.green_circle.setFixedSize(20, 20)  # 10px radius
+        self.green_circle.setStyleSheet("background-color: #90EE90; border: 2px solid green; border-radius: 10px;")
+        self.green_circle.setCursor(Qt.PointingHandCursor)
+        self.green_circle.mousePressEvent = self.on_green_circle_click
         
         # 4. 第二个刻度线widget（Voltage）
         self.scale_line2 = ScaleLineWidget(
@@ -2392,6 +2399,17 @@ class DL24App(QMainWindow):
             int(zone1_width),
             int(zone1_height)
         )
+        
+        # 定位绿色圆形按钮到Zone1的右上角
+        circle_x = left_margin + zone1_width - self.green_circle.width() - 10
+        circle_y = top_margin + 10
+        self.green_circle.setGeometry(
+            int(circle_x),
+            int(circle_y),
+            self.green_circle.width(),
+            self.green_circle.height()
+        )
+        self.green_circle.raise_()  # 确保在最上层
             
         # 使用绝对定位设置Zone2的位置和大小
         self.zone2_widget.setGeometry(
@@ -2699,6 +2717,69 @@ class DL24App(QMainWindow):
         
         self.scale_line4.set_width(scale4_width)
         self.scale_line4.setGeometry(int(scale4_x), int(scale4_y), int(scale4_width + 2 * self.scale_line4.padding), 100)
+    
+    def on_green_circle_click(self, event):
+        print("Green circle clicked!")
+        # 捕获Zone1的屏幕并保存到剪贴板
+        from PySide6.QtWidgets import QMessageBox
+        
+        # 获取主widget
+        main_widget = self.centralWidget()
+        if main_widget:
+            print("Capturing screenshot")
+            # 只捕获DisplayWidget（白色背景区域）加上周围的刻度
+            # 获取DisplayWidget的几何信息
+            display_geo = self.display_widget.geometry()
+            
+            # 计算包含DisplayWidget和所有刻度的区域
+            # 左边界：最左侧刻度的左边缘
+            leftmost = min(
+                self.scale_line2.geometry().left(),  # V scale
+                self.scale_line3.geometry().left()   # A scale
+            )
+            # 右边界：最右侧刻度的右边缘
+            rightmost = max(
+                self.scale_line.geometry().right(),   # P scale
+                self.scale_line4.geometry().right()  # T scale
+            )
+            # 上边界：最顶部刻度的上边缘
+            topmost = min(
+                self.scale_line2.geometry().top(),  # V scale
+                self.scale_line3.geometry().top()   # A scale
+            )
+            # 下边界：最底部刻度的下边缘
+            bottommost = max(
+                self.scale_line.geometry().bottom(),   # P scale
+                self.scale_line4.geometry().bottom()  # T scale
+            )
+            
+            # 创建捕获矩形
+            capture_rect = QRect(
+                leftmost,
+                topmost,
+                rightmost - leftmost,
+                bottommost - topmost
+            )
+            print(f"Capture rectangle: {capture_rect}")
+            
+            # 临时设置主widget背景为白色，避免灰色条纹
+            original_style = main_widget.styleSheet()
+            main_widget.setStyleSheet("background-color: white;")
+            
+            # 捕获指定区域
+            screenshot = main_widget.grab(capture_rect)
+            print("Screenshot captured")
+            
+            # 恢复主widget原始样式
+            main_widget.setStyleSheet(original_style)
+            
+            # 保存到剪贴板
+            clipboard = QApplication.clipboard()
+            clipboard.setImage(screenshot.toImage())
+            print("Screenshot saved to clipboard")
+            # 显示提示
+            print("Showing message box")
+            QMessageBox.information(self, "提示", "Screen Copied")
     
     def init_timer(self):
         # 数据更新定时器
