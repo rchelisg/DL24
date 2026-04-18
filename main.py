@@ -36,57 +36,10 @@ XResolution = 300
 VERSION = "0.0.81"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# 计算代码哈希的函数
-def calculate_code_hash():
-    """计算当前代码的哈希值，用于检测代码变化"""
-    hash_obj = hashlib.md5()
-    # 读取当前文件的内容
-    with open(__file__, 'rb') as f:
-        content = f.read()
-        hash_obj.update(content)
-    return hash_obj.hexdigest()
-
-# 管理版本号的函数
-def get_revision():
-    """获取当前版本号，如果代码有变化则自动递增"""
-    revision_file = "revision.txt"
-    current_hash = calculate_code_hash()
-
-    try:
-        # 尝试读取当前版本号和哈希值
-        with open(revision_file, 'r') as f:
-            lines = f.readlines()
-            if len(lines) >= 2:
-                stored_revision = lines[0].strip()
-                stored_hash = lines[1].strip()
-
-                # 如果哈希值相同，返回当前版本号
-                if stored_hash == current_hash:
-                    return stored_revision
-                # 如果哈希值不同，递增版本号
-                else: 
-                    major, minor, patch = map(int, stored_revision.split('.')) 
-                    patch += 1
-                    # 如果patch达到99，重置为00并递增minor
-                    if patch > 99:
-                        patch = 0
-                        minor += 1
-                    new_revision = f"{major}.{minor}.{patch:02d}"
-            else:
-                # 文件格式不正确，使用默认版本号
-                new_revision = "0.0.00"
-    except FileNotFoundError:
-        # 文件不存在，使用默认版本号
-        new_revision = "0.0.00"
-
-    # 保存新的版本号和哈希值
-    with open(revision_file, 'w') as f:
-        f.write(f"{new_revision}\n{current_hash}\n")
-
-    return new_revision
-
-# 获取当前版本号
-REVISION = get_revision()
+# 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
+# 当代码更改时，手动递增版本号
+# 规则：patch从00-99，达到99后重置为00并递增minor
+REVISION = "1.0.02"
 
 # Test comment to trigger revision increment - updated again
 
@@ -896,7 +849,7 @@ class DL24App(QMainWindow):
         height = int(screen.height() * 0.8)
         self.setGeometry(100, 100, width, height)
         self.setFixedSize(width, height)  # 使窗口不可调整大小
-        self.setWindowTitle(f"DL24P Host {REVISION}")
+        self.setWindowTitle(f"DL24P-JM {REVISION}")
         
         # 设置全局字体
         self.font = QFont("Microsoft YaHei", 10)
@@ -2162,7 +2115,7 @@ class DL24App(QMainWindow):
         # 4. 温度显示widget
         global RunTime, MosT
         self.temperature_label = QLabel(f"{RunTime}S   {MosT:.1f}°C", main_widget)
-        font = QFont("Arial", 14)
+        font = QFont("Arial", 12)
         self.temperature_label.setFont(font)
         self.temperature_label.setStyleSheet("color: #808080;")
         self.temperature_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
@@ -2170,7 +2123,7 @@ class DL24App(QMainWindow):
         # 添加绿色圆形按钮到主窗口
         self.green_circle = QLabel(main_widget)
         self.green_circle.setFixedSize(20, 20)  # 10px radius
-        self.green_circle.setStyleSheet("background-color: #90EE90; border: 2px solid green; border-radius: 10px;")
+        self.green_circle.setStyleSheet("background-color: #90EE90; border: 2px solid #90EE90; border-radius: 10px;")
         self.green_circle.setCursor(Qt.PointingHandCursor)
         self.green_circle.mousePressEvent = self.on_green_circle_click
         
