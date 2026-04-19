@@ -3016,6 +3016,11 @@ class DL24App(QMainWindow):
                 time_str = f"{self.H:02d}:{self.M:02d}:{self.S:02d}"
                 self.zone2_value_labels[5].setText(time_str)
         
+        # 检查RunTime是否大于等于Tmax
+        if RunTime >= self.scale_line4.max_value:
+            new_tmax = RunTime + 60
+            self.update_t_scale(new_tmax)
+        
         if hasattr(self, 'row3_entry') and Vset is not None:
             self.row3_entry.setText(f"{Vset:.2f}")
             self.Vset = Vset
