@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QGraphicsRectItem, QGraphicsLineItem, QGraphicsView, QGraphicsScene,
     QTextEdit, QFrame, QColorDialog
 )
-from PySide6.QtCore import Qt, QTimer, QRect
+from PySide6.QtCore import Qt, QTimer, QRect, QThread, Signal
 from PySide6.QtGui import QFont, QFontMetrics, QPen, QColor, QPainter
 from PySide6.QtGui import QGuiApplication
 import pyqtgraph as pg
@@ -32,6 +32,121 @@ RunTime = 0  # Initial runtime in seconds
 # X resolution for curve plotting
 XResolution = 300
 
+class QueryThread(QThread):
+    query_completed = Signal(dict)
+    
+    def __init__(self, serial_port, serial_buffer, send_data_func, ttimeout, t1, thold, tdelay, previous_values):
+        super().__init__()
+        self.serial_port = serial_port
+        self.serial_buffer = serial_buffer
+        self.send_data_func = send_data_func
+        self.ttimeout = ttimeout
+        self.t1 = t1
+        self.thold = thold
+        self.tdelay = tdelay
+        self.previous_values = previous_values
+        self.running = True
+    
+    def run(self):
+        global RunTime
+        
+        queries = [
+            ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),
+            ('ReadSmV', b'\xb1\xb2\x11\x00\x00\xb6', 0x11),
+            ('ReadSmA', b'\xb1\xb2\x12\x00\x00\xb6', 0x12),
+            ('ReadSTimer', b'\xb1\xb2\x13\x00\x00\xb6', 0x13),
+            ('ReadSmAh', b'\xb1\xb2\x14\x00\x00\xb6', 0x14),
+            ('ReadSmWh', b'\xb1\xb2\x15\x00\x00\xb6', 0x15),
+            ('ReadMosT', b'\xb1\xb2\x16\x00\x00\xb6', 0x16),
+            ('ReadIset', b'\xb1\xb2\x17\x00\x00\xb6', 0x17),
+            ('ReadVset', b'\xb1\xb2\x18\x00\x00\xb6', 0x18),
+            ('ReadTset', b'\xb1\xb2\x19\x00\x00\xb6', 0x19)
+        ]
+        
+        results = {}
+        H = 0
+        M = 0
+        S = 0
+        
+        for query_name, command, third_byte in queries:
+            if not self.running:
+                break
+            
+            self.serial_buffer.clear()
+            if hasattr(self.serial_port, 'in_waiting'):
+                while self.serial_port.in_waiting > 0:
+                    self.serial_port.read(self.serial_port.in_waiting)
+            
+            time.sleep(self.t1)
+            
+            self.send_data_func(command)
+            start_time = time.time()
+            
+            time.sleep(self.thold)
+            
+            self.serial_buffer.clear()
+            if hasattr(self.serial_port, 'in_waiting'):
+                while self.serial_port.in_waiting > 0:
+                    self.serial_port.read(self.serial_port.in_waiting)
+            
+            response = None
+            while time.time() - start_time < self.ttimeout:
+                if not self.running:
+                    break
+                if hasattr(self.serial_port, 'in_waiting'):
+                    if self.serial_port.in_waiting > 0:
+                        data = self.serial_port.read(self.serial_port.in_waiting)
+                        self.serial_buffer.extend(data)
+                        header = b'\xca\xcb'
+                        trailer = b'\xce\xcf'
+                        header_index = self.serial_buffer.find(header)
+                        while header_index != -1:
+                            if len(self.serial_buffer) >= header_index + 7:
+                                if self.serial_buffer[header_index + 5:header_index + 7] == trailer:
+                                    response = self.serial_buffer[header_index:header_index + 7]
+                                    break
+                            header_index = self.serial_buffer.find(header, header_index + 1)
+                time.sleep(0.01)
+            
+            if response:
+                if query_name == 'ReadLStatus':
+                    results['status'] = response[4]
+                elif query_name == 'ReadSmV':
+                    results['voltage'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadSmA':
+                    results['current'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadSTimer':
+                    H = response[2]
+                    M = response[3]
+                    S = response[4]
+                    RunTime = S + M * 60 + H * 3600
+                    results['H'] = H
+                    results['M'] = M
+                    results['S'] = S
+                elif query_name == 'ReadSmAh':
+                    results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadSmWh':
+                    results['energy'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadMosT':
+                    results['most'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadIset':
+                    results['iset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadVset':
+                    results['vset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                elif query_name == 'ReadTset':
+                    results['tset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+            
+            time.sleep(self.tdelay)
+        
+        for key, default in self.previous_values.items():
+            if key not in results:
+                results[key] = default
+        
+        self.query_completed.emit(results)
+    
+    def stop(self):
+        self.running = False
+
 # 版本号管理
 VERSION = "0.0.81"
 BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -39,7 +154,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.02"
+REVISION = "1.0.08"
 
 # Test comment to trigger revision increment - updated again
 
@@ -2747,6 +2862,7 @@ class DL24App(QMainWindow):
         
         # 主循环执行状态标志
         self.main_loop_running = False
+        self.query_thread = None
         
         # 主循环定时器 - 设置为最高优先级
         self.main_loop_timer = QTimer()
@@ -2788,11 +2904,11 @@ class DL24App(QMainWindow):
         pass
         
     def MainLoop(self):
-        # 主循环函数
-        self.main_loop_running = True
+        # 主循环函数 - 使用后台线程避免阻塞UI
+        if self.main_loop_running:
+            return
         
-        # 声明全局变量
-        global RunTime
+        self.main_loop_running = True
         
         import datetime
         current_time = datetime.datetime.now().strftime('%M:%S')
@@ -2801,117 +2917,20 @@ class DL24App(QMainWindow):
         # 更新状态指示器为红色（MainLoop执行中）
         if hasattr(self, 'status_indicator') and self.is_connected:
             self.status_indicator.setStyleSheet("color: red; padding: 0px; margin: 0px;")
-            # 强制UI更新
-            from PySide6.QtWidgets import QApplication
-            QApplication.processEvents()
         
-        # 使用PX100协议查询设备数据
         if self.is_connected:
-            import time
-            
-            # 初始化QueryTimedOut标志
+            # 初始化参数
             if not hasattr(self, 'QueryTimedOut'):
                 self.QueryTimedOut = 0
-            
-            # 使用实例变量存储参数，方便运行时调整
             if not hasattr(self, 'TTimeOut'):
-                self.TTimeOut = 0.1  # 100ms
+                self.TTimeOut = 0.1
+            if not hasattr(self, 'T1'):
+                self.T1 = 0.0
             if not hasattr(self, 'TDelay'):
-                self.TDelay = 0.0  # 0ms
+                self.TDelay = 0.0
             if not hasattr(self, 'THold'):
-                self.THold = 0.018  # 18ms
+                self.THold = 0.0
             
-            # 检查控制台输入（Windows兼容）
-            import sys
-            try:
-                import msvcrt
-                if msvcrt.kbhit():
-                    input_line = sys.stdin.readline().strip()
-                    if input_line.lower() == 't':
-                        # 显示当前值（毫秒）
-                        print(f"Current values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
-                    elif input_line.lower().startswith('t '):
-                        parts = input_line.split()
-                        if len(parts) == 4:
-                            try:
-                                # 输入为毫秒，转换为秒
-                                new_ttimeout_ms = int(parts[1])
-                                new_thold_ms = int(parts[2])
-                                new_tdelay_ms = int(parts[3])
-                                
-                                new_ttimeout = new_ttimeout_ms / 1000
-                                new_thold = new_thold_ms / 1000
-                                new_tdelay = new_tdelay_ms / 1000
-                                
-                                # 显示旧值和新值（毫秒）
-                                print(f"Old values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
-                                
-                                # 更新值
-                                self.TTimeOut = new_ttimeout
-                                self.THold = new_thold
-                                self.TDelay = new_tdelay
-                                
-                                print(f"New values: TTimeOut={new_ttimeout_ms}ms, THold={new_thold_ms}ms, TDelay={new_tdelay_ms}ms")
-                            except ValueError:
-                                print("Invalid values. Usage: T <TTimeOut_ms> <THold_ms> <TDelay_ms>")
-            except ImportError:
-                # 非Windows系统使用select
-                import select
-                if select.select([sys.stdin], [], [], 0)[0]:
-                    input_line = sys.stdin.readline().strip()
-                    if input_line.lower() == 't':
-                        # 显示当前值（毫秒）
-                        print(f"Current values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
-                    elif input_line.lower().startswith('t '):
-                        parts = input_line.split()
-                        if len(parts) == 4:
-                            try:
-                                # 输入为毫秒，转换为秒
-                                new_ttimeout_ms = int(parts[1])
-                                new_thold_ms = int(parts[2])
-                                new_tdelay_ms = int(parts[3])
-                                
-                                new_ttimeout = new_ttimeout_ms / 1000
-                                new_thold = new_thold_ms / 1000
-                                new_tdelay = new_tdelay_ms / 1000
-                                
-                                # 显示旧值和新值（毫秒）
-                                print(f"Old values: TTimeOut={int(self.TTimeOut * 1000)}ms, THold={int(self.THold * 1000)}ms, TDelay={int(self.TDelay * 1000)}ms")
-                                
-                                # 更新值
-                                self.TTimeOut = new_ttimeout
-                                self.THold = new_thold
-                                self.TDelay = new_tdelay
-                                
-                                print(f"New values: TTimeOut={new_ttimeout_ms}ms, THold={new_thold_ms}ms, TDelay={new_tdelay_ms}ms")
-                            except ValueError:
-                                print("Invalid values. Usage: T <TTimeOut_ms> <THold_ms> <TDelay_ms>")
-            
-            # 1. 开始查询序列前的准备
-            # 1.1 清除接收缓冲区
-            self.serial_buffer.clear()
-            # 1.2 设置QueryTimedOut标志为0
-            self.QueryTimedOut = 0
-            
-            # 2. 运行10个查询
-            queries = [
-                ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),  # 第一次ReadLStatus，响应将被忽略
-                ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),  # 第二次ReadLStatus，使用此响应
-                ('ReadSmV', b'\xb1\xb2\x11\x00\x00\xb6', 0x11),
-                ('ReadSmA', b'\xb1\xb2\x12\x00\x00\xb6', 0x12),
-                ('ReadSTimer', b'\xb1\xb2\x13\x00\x00\xb6', 0x13),
-                ('ReadSmAh', b'\xb1\xb2\x14\x00\x00\xb6', 0x14),
-                ('ReadSmWh', b'\xb1\xb2\x15\x00\x00\xb6', 0x15),
-                ('ReadMosT', b'\xb1\xb2\x16\x00\x00\xb6', 0x16),
-                ('ReadIset', b'\xb1\xb2\x17\x00\x00\xb6', 0x17),
-                ('ReadVset', b'\xb1\xb2\x18\x00\x00\xb6', 0x18),
-                ('ReadTset', b'\xb1\xb2\x19\x00\x00\xb6', 0x19)  # 一次ReadTset
-            ]
-            
-            # 存储查询结果
-            results = {}
-            
-            # 存储之前的值，用于超时情况
             previous_values = {
                 'status': getattr(self, 'previous_status', None),
                 'voltage': getattr(self, 'previous_voltage', None),
@@ -2924,190 +2943,104 @@ class DL24App(QMainWindow):
                 'tset': getattr(self, 'previous_tset', None)
             }
             
-            # 跟踪ReadLStatus的次数
-            readlstatus_count = 0
-            
-            for query_name, command, third_byte in queries:
-                # 2.2.2 发送查询
-                self.send_data(command)
-                # 2.2.3 开始计时，超时时间为TTimeOut
-                start_time = time.time()
-                # 2.2.2.1 等待THold时间
-                time.sleep(self.THold)
-                # 2.2.1 清除接收缓冲区（包括串口缓冲区）
-                self.serial_buffer.clear()
-                # 清除串口缓冲区中的旧数据
-                if hasattr(self.serial_port, 'in_waiting'):
-                    while self.serial_port.in_waiting > 0:
-                        self.serial_port.read(self.serial_port.in_waiting)
-                response = None
-                while time.time() - start_time < self.TTimeOut:
-                    if hasattr(self.serial_port, 'in_waiting'):
-                        if self.serial_port.in_waiting > 0:
-                            data = self.serial_port.read(self.serial_port.in_waiting)
-                            self.serial_buffer.extend(data)
-                            # 2.2.4 扫描并搜索头部，验证头部和尾部
-                            header = b'\xca\xcb'
-                            trailer = b'\xce\xcf'
-                            header_index = self.serial_buffer.find(header)
-                            while header_index != -1:
-                                if len(self.serial_buffer) >= header_index + 7:
-                                    if self.serial_buffer[header_index + 5:header_index + 7] == trailer:
-                                        # 找到有效的响应
-                                        response = self.serial_buffer[header_index:header_index + 7]
-                                        break
-                                header_index = self.serial_buffer.find(header, header_index + 1)
-                            if response:
-                                break
-                    # 小延迟避免忙等
-                    time.sleep(0.01)
-                
-                # 处理响应
-                if response:
-                    # 2.2.4.2 有效响应，填充全局变量
-                    if query_name == 'ReadLStatus':
-                        readlstatus_count += 1
-                        # 忽略第一次ReadLStatus的响应，只使用第二次的
-                        if readlstatus_count == 2:
-                            results['status'] = response[4]
-                    elif query_name == 'ReadSmV':
-                        results['voltage'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadSmA':
-                        results['current'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadSTimer':
-                        # 提取时间数据 (SH, SM, SS)
-                        self.H = response[2]  # 小时
-                        self.M = response[3]  # 分钟
-                        self.S = response[4]  # 秒
-                        # 计算RunTime
-                        RunTime = self.S + self.M * 60 + self.H * 3600
-                        
-                        # 检查RunTime是否大于等于Tmax
-                        if hasattr(self, 'scale_line4'):
-                            tmax = self.scale_line4.max_value
-                            if RunTime >= tmax:
-                                # 自动调整Tmax为RunTime + 60
-                                new_tmax = RunTime + 60
-                                self.update_t_scale(new_tmax)
-                        results['timer'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadSmAh':
-                        results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadSmWh':
-                        results['energy'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadMosT':
-                        smost = (response[2] << 16) | (response[3] << 8) | response[4]
-                        results['most'] = smost
-                        # Update global MosT variable
-                        global MosT
-                        MosT = smost  # Use raw SMosT value
-                    elif query_name == 'ReadIset':
-                        results['iset'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadVset':
-                        results['vset'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                    elif query_name == 'ReadTset':
-                        results['tset'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                else:
-                    # 2.2.4.1 超时，设置QueryTimedOut标志为查询的第三个字节
-                    self.QueryTimedOut = third_byte
-                    print(f"Query timed out: 0x{third_byte:02X}")
-                
-                # 2.2.5 延迟TDelay并移至下一个查询
-                time.sleep(self.TDelay)
-            
-            # 分配变量，使用之前的值如果超时
-            energy = results.get('energy', previous_values['energy'])
-            capacity = results.get('capacity', previous_values['capacity'])
-            iset = results.get('iset', previous_values['iset'])
-            vset = results.get('vset', previous_values['vset'])
-            voltage = results.get('voltage', previous_values['voltage'])
-            current = results.get('current', previous_values['current'])
-            status = results.get('status', previous_values['status'])
-            most = results.get('most', previous_values['most'])
-            tset = results.get('tset', previous_values['tset'])
-            
-            # 存储当前值为下一次的之前值
-            self.previous_status = status
-            self.previous_voltage = voltage
-            self.previous_current = current
-            self.previous_energy = energy
-            self.previous_capacity = capacity
-            self.previous_most = most
-            self.previous_iset = iset
-            self.previous_vset = vset
-            self.previous_tset = tset
-            
-            Wh = energy / 1000 if energy is not None else None
-            mAh = capacity if capacity is not None else None
-            Iset = iset / 100 if iset is not None else None
-            Vset = vset / 100 if vset is not None else None
-            
-            # 计算实时数据变量
-            V = voltage / 1000 if voltage is not None else None
-            A = current / 1000 if current is not None else None
-            W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
-            
-            # 存储为实例变量，供update_data方法使用
-            self.V = V if V is not None else 4.0
-            self.A = A if A is not None else 1.0
-            
-
-            
-            # 更新Zone2显示标签
-            if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 6:
-                if V is not None:
-                    self.zone2_value_labels[0].setText(f"{V:06.3f}")  # 电压 (V) - 00.000格式
-                if A is not None:
-                    self.zone2_value_labels[1].setText(f"{A:06.3f}")  # 电流 (A) - 00.000格式
-                if Wh is not None:
-                    self.zone2_value_labels[2].setText(f"{Wh:06.1f}")  # 功耗 (Wh) - 0000.0格式
-                if mAh is not None:
-                    self.zone2_value_labels[3].setText(f"{mAh:05.0f}")  # 容量 (mAh) - 00000格式
-                if W is not None:
-                    self.zone2_value_labels[4].setText(f"{W:06.2f}")  # 功率 (W) - 000.00格式
-                # 显示时间 HH:MM:SS
+            self.query_thread = QueryThread(
+                serial_port=self.serial_port,
+                serial_buffer=self.serial_buffer,
+                send_data_func=self.send_data,
+                ttimeout=self.TTimeOut,
+                t1=self.T1,
+                thold=self.THold,
+                tdelay=self.TDelay,
+                previous_values=previous_values
+            )
+            self.query_thread.query_completed.connect(self.on_query_completed)
+            self.query_thread.start()
+        else:
+            self.main_loop_running = False
+    
+    def on_query_completed(self, results):
+        # 处理查询结果（在主线程中执行）
+        global RunTime
+        
+        energy = results.get('energy', None)
+        capacity = results.get('capacity', None)
+        iset = results.get('iset', None)
+        vset = results.get('vset', None)
+        voltage = results.get('voltage', None)
+        current = results.get('current', None)
+        status = results.get('status', None)
+        most = results.get('most', None)
+        tset = results.get('tset', None)
+        
+        self.previous_status = status
+        self.previous_voltage = voltage
+        self.previous_current = current
+        self.previous_energy = energy
+        self.previous_capacity = capacity
+        self.previous_most = most
+        self.previous_iset = iset
+        self.previous_vset = vset
+        self.previous_tset = tset
+        
+        if 'H' in results:
+            self.H = results['H']
+        if 'M' in results:
+            self.M = results['M']
+        if 'S' in results:
+            self.S = results['S']
+        
+        Wh = energy / 1000 if energy is not None else None
+        mAh = capacity if capacity is not None else None
+        Iset = iset / 100 if iset is not None else None
+        Vset = vset / 100 if vset is not None else None
+        
+        V = voltage / 1000 if voltage is not None else None
+        A = current / 1000 if current is not None else None
+        W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
+        
+        self.V = V if V is not None else 4.0
+        self.A = A if A is not None else 1.0
+        
+        if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 6:
+            if V is not None:
+                self.zone2_value_labels[0].setText(f"{V:06.3f}")
+            if A is not None:
+                self.zone2_value_labels[1].setText(f"{A:06.3f}")
+            if Wh is not None:
+                self.zone2_value_labels[2].setText(f"{Wh:06.1f}")
+            if mAh is not None:
+                self.zone2_value_labels[3].setText(f"{mAh:05.0f}")
+            if W is not None:
+                self.zone2_value_labels[4].setText(f"{W:06.2f}")
+            if hasattr(self, 'H') and hasattr(self, 'M') and hasattr(self, 'S'):
                 time_str = f"{self.H:02d}:{self.M:02d}:{self.S:02d}"
                 self.zone2_value_labels[5].setText(time_str)
-            
-            if hasattr(self, 'row3_entry') and Vset is not None:
-                # Update Vset entry box
-                self.row3_entry.setText(f"{Vset:.2f}")
-                self.Vset = Vset
-            
-            if hasattr(self, 'row4_entry') and Iset is not None:
-                # Update Iset entry box
-                self.row4_entry.setText(f"{Iset:.2f}")
-                self.Iset = Iset
-
-            # 更新温度显示
-            if hasattr(self, 'temperature_label'):
-                self.update_temperature_display()
-
-            # 存储状态为实例变量，供OverlayWidget使用
-            self.status = status if status is not None else 0
-            
-            if status is not None:
-                if status == 1:
-                    # SLStatus=1, 设备运行中
-                    self.start_btn.setText("停止")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
-                    # 打印RunTime和V(Runtime)到控制台
-                    V = voltage / 1000 if voltage is not None else None
-
-                    # 只有当SLStatus=1时才添加新数据点
-                    self.update_data()
-                else:
-                    # SLStatus=0, 设备停止
-                    self.start_btn.setText("启动")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
         
-        # 更新状态指示器为绿色（MainLoop执行完成）
+        if hasattr(self, 'row3_entry') and Vset is not None:
+            self.row3_entry.setText(f"{Vset:.2f}")
+            self.Vset = Vset
+        
+        if hasattr(self, 'row4_entry') and Iset is not None:
+            self.row4_entry.setText(f"{Iset:.2f}")
+            self.Iset = Iset
+        
+        if hasattr(self, 'temperature_label'):
+            self.update_temperature_display()
+        
+        self.status = status if status is not None else 0
+        
+        if status is not None:
+            if status == 1:
+                self.start_btn.setText("停止")
+                self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
+                self.update_data()
+            else:
+                self.start_btn.setText("启动")
+                self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
+        
         if hasattr(self, 'status_indicator') and self.is_connected:
             self.status_indicator.setStyleSheet("color: green; padding: 0px; margin: 0px;")
-            # 强制UI更新
-            from PySide6.QtWidgets import QApplication
-            QApplication.processEvents()
         
-        # 主循环执行完成
         self.main_loop_running = False
         
     def refresh_ports(self):
@@ -3185,6 +3118,10 @@ class DL24App(QMainWindow):
                     self.connect_btn.setStyleSheet("border: none; border-radius: 17px; background-color: white; padding: 0px; margin: 0px; font-size: 12px;")
         else:
             # 断开串口
+            if hasattr(self, 'query_thread') and self.query_thread is not None:
+                self.query_thread.stop()
+                self.query_thread.wait()
+                self.query_thread = None
             if self.serial_port:
                 try:
                     self.serial_port.close()
