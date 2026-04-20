@@ -156,7 +156,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.10"
+REVISION = "1.0.11"
 
 # Test comment to trigger revision increment - updated again
 
@@ -2790,60 +2790,23 @@ class DL24App(QMainWindow):
     
     def on_green_circle_click(self, event):
         print("Green circle clicked!")
-        # 捕获Zone1的屏幕并保存到剪贴板
         from PySide6.QtWidgets import QMessageBox
         
-        # 获取主widget
         main_widget = self.centralWidget()
         if main_widget:
             print("Capturing screenshot")
-            # 只捕获DisplayWidget（白色背景区域）加上周围的刻度
-            # 获取DisplayWidget的几何信息
-            display_geo = self.display_widget.geometry()
             
-            # 计算包含DisplayWidget和所有刻度的区域
-            # 左边界：最左侧刻度的左边缘
-            leftmost = min(
-                self.scale_line2.geometry().left(),  # V scale
-                self.scale_line3.geometry().left()   # A scale
-            )
-            # 右边界：最右侧刻度的右边缘
-            rightmost = max(
-                self.scale_line.geometry().right(),   # P scale
-                self.scale_line4.geometry().right()  # T scale
-            )
-            # 上边界：最顶部刻度的上边缘
-            topmost = min(
-                self.scale_line2.geometry().top(),  # V scale
-                self.scale_line3.geometry().top()   # A scale
-            )
-            # 下边界：最底部刻度的下边缘
-            bottommost = max(
-                self.scale_line.geometry().bottom(),   # P scale
-                self.scale_line4.geometry().bottom()  # T scale
-            )
-            
-            # 创建捕获矩形
-            capture_rect = QRect(
-                leftmost,
-                topmost,
-                rightmost - leftmost,
-                bottommost - topmost
-            )
+            capture_rect = self.display_widget.geometry()
             print(f"Capture rectangle: {capture_rect}")
             
-            # 临时设置主widget背景为白色，避免灰色条纹
             original_style = main_widget.styleSheet()
             main_widget.setStyleSheet("background-color: white;")
             
-            # 捕获指定区域
             screenshot = main_widget.grab(capture_rect)
             print("Screenshot captured")
             
-            # 恢复主widget原始样式
             main_widget.setStyleSheet(original_style)
             
-            # 保存到剪贴板
             clipboard = QApplication.clipboard()
             clipboard.setImage(screenshot.toImage())
             print("Screenshot saved to clipboard")
