@@ -106,6 +106,8 @@ class QueryThread(QThread):
                                     response = self.serial_buffer[header_index:header_index + 7]
                                     break
                             header_index = self.serial_buffer.find(header, header_index + 1)
+                        if response:
+                            break
                 time.sleep(0.01)
             
             if response:
@@ -154,7 +156,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.08"
+REVISION = "1.0.10"
 
 # Test comment to trigger revision increment - updated again
 
@@ -2927,7 +2929,7 @@ class DL24App(QMainWindow):
             if not hasattr(self, 'T1'):
                 self.T1 = 0.0
             if not hasattr(self, 'TDelay'):
-                self.TDelay = 0.0
+                self.TDelay = 0.01  # 10ms
             if not hasattr(self, 'THold'):
                 self.THold = 0.0
             
@@ -2988,6 +2990,10 @@ class DL24App(QMainWindow):
             self.M = results['M']
         if 'S' in results:
             self.S = results['S']
+        
+        global MosT
+        if most is not None:
+            MosT = most
         
         Wh = energy / 1000 if energy is not None else None
         mAh = capacity if capacity is not None else None
