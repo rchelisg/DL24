@@ -35,7 +35,7 @@ XResolution = 300
 class QueryThread(QThread):
     query_completed = Signal(dict)
     
-    def __init__(self, serial_port, serial_buffer, send_data_func, ttimeout, t1, thold, tdelay, previous_values):
+    def __init__(self, serial_port, serial_buffer, send_data_func, ttimeout, t1, thold, tdelay, previous_values, query_active_ref):
         super().__init__()
         self.serial_port = serial_port
         self.serial_buffer = serial_buffer
@@ -45,10 +45,13 @@ class QueryThread(QThread):
         self.thold = thold
         self.tdelay = tdelay
         self.previous_values = previous_values
+        self.query_active_ref = query_active_ref
         self.running = True
     
     def run(self):
         global RunTime
+        
+        self.query_active_ref[0] = True
         
         queries = [
             ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),
@@ -121,10 +124,15 @@ class QueryThread(QThread):
                     H = response[2]
                     M = response[3]
                     S = response[4]
-                    RunTime = S + M * 60 + H * 3600
                     results['H'] = H
                     results['M'] = M
                     results['S'] = S
+                    if results.get('status') == 1:
+                        new_run_time = S + M * 60 + H * 3600
+                        if new_run_time < RunTime or new_run_time > RunTime + 3:
+                            RunTime = RunTime + 1
+                        else:
+                            RunTime = new_run_time
                 elif query_name == 'ReadSmAh':
                     results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
                 elif query_name == 'ReadSmWh':
@@ -137,6 +145,8 @@ class QueryThread(QThread):
                     results['vset'] = (response[2] << 16) | (response[3] << 8) | response[4]
                 elif query_name == 'ReadTset':
                     results['tset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+            else:
+                print(f"Timeout: query ID 0x{third_byte:02X}")
             
             time.sleep(self.tdelay)
         
@@ -144,6 +154,7 @@ class QueryThread(QThread):
             if key not in results:
                 results[key] = default
         
+        self.query_active_ref[0] = False
         self.query_completed.emit(results)
     
     def stop(self):
@@ -156,7 +167,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.11"
+REVISION = "1.0.21"
 
 # Test comment to trigger revision increment - updated again
 
@@ -936,6 +947,8 @@ class DL24App(QMainWindow):
         self.mode = 0  # 0: CC, 1: CV, 2: CP
         self.is_parameter_editable = False
         self.serial_buffer = bytearray()  # 用于存储串口接收到的数据
+        self.query_active = [False]  # 用于标记是否正在等待查询响应
+        self.status = 0  # 初始状态为0
         # 全局时间变量
         self.H = 0
         self.M = 0
@@ -1468,6 +1481,8 @@ class DL24App(QMainWindow):
             success = self.SetResetCounters()
             if success:
                 print("Counters reset successful")
+                global RunTime
+                RunTime = 0
                 # 清除曲线数据
                 self.clear_plot()
             else:
@@ -2911,12 +2926,13 @@ class DL24App(QMainWindow):
             self.query_thread = QueryThread(
                 serial_port=self.serial_port,
                 serial_buffer=self.serial_buffer,
-                send_data_func=self.send_data,
+                send_data_func=lambda data: self.send_data(data, bypass_wait=True),
                 ttimeout=self.TTimeOut,
                 t1=self.T1,
                 thold=self.THold,
                 tdelay=self.TDelay,
-                previous_values=previous_values
+                previous_values=previous_values,
+                query_active_ref=self.query_active
             )
             self.query_thread.query_completed.connect(self.on_query_completed)
             self.query_thread.start()
@@ -3112,6 +3128,10 @@ class DL24App(QMainWindow):
             # 更新状态指示器为浅黄色
             if hasattr(self, 'status_indicator'):
                 self.status_indicator.setStyleSheet("color: #FFFF99; padding: 0px; margin: 0px;")
+            if hasattr(self, 'tx_status_icon'):
+                self.tx_status_icon.setStyleSheet("color: darkgrey; padding: 0px; margin: 0px;")
+            if hasattr(self, 'rx_status_icon'):
+                self.rx_status_icon.setStyleSheet("color: darkgrey; padding: 0px; margin: 0px;")
             
     def update_data(self):
         # 只有当SLStatus=1时才更新数据
@@ -3140,17 +3160,18 @@ class DL24App(QMainWindow):
         if current_time > self.time_max:
             self.time_max += 60  # 自动增加1分钟
     
-    def send_data(self, data):
-        # 发送数据到串口
+    def send_data(self, data, bypass_wait=False):
         if self.is_connected and self.serial_port:
+            if not bypass_wait:
+                while self.query_active[0]:
+                    from PySide6.QtWidgets import QApplication
+                    QApplication.processEvents()
+                    time.sleep(0.001)
             try:
-                # 清除接收缓冲区
                 self.serial_buffer.clear()
-                # 正在发送数据
                 self.update_tx_status(True)
                 self.serial_port.write(data)
-                # 短暂延迟后恢复状态
-                QTimer.singleShot(500, lambda: self.update_tx_status(False))
+                QTimer.singleShot(50, lambda: self.update_tx_status(False))
                 return True
             except Exception as e:
                 self.update_tx_status(False)
@@ -3188,7 +3209,7 @@ class DL24App(QMainWindow):
                         # 处理串行缓冲区，检测数据帧
                         self.process_serial_buffer()
                         # 短暂延迟后恢复状态
-                        QTimer.singleShot(500, lambda: self.update_rx_status(False))
+                        QTimer.singleShot(50, lambda: self.update_rx_status(False))
             except Exception as e:
                 pass
     
@@ -3225,14 +3246,14 @@ class DL24App(QMainWindow):
         if not self.is_connected:
             return False
         command = b'\xb1\xb2\x01\x00\x00\xb6'
-        return self.send_data(command)
+        return self.send_data(command, bypass_wait=True)
     
     def SetOn(self):
         """Send SetOn command"""
         if not self.is_connected:
             return False
         command = b'\xb1\xb2\x01\x01\x00\xb6'
-        return self.send_data(command)
+        return self.send_data(command, bypass_wait=True)
     
     def SetIset(self, current):
         """Send SetIset command with current value"""
@@ -3464,21 +3485,28 @@ class DL24App(QMainWindow):
     def on_onoff_button_clicked(self):
         """Handle OnOff button click"""
         if self.is_connected:
-            # Check current button text to determine action
-            if self.start_btn.text() == "启动":
-                # Send SetOn command
-                success = self.SetOn()
-                if success:
-                    # Immediately update button state to reflect new status
-                    self.start_btn.setText("停止")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
-            else:
-                # Send SetOff command
-                success = self.SetOff()
-                if success:
-                    # Immediately update button state to reflect new status
-                    self.start_btn.setText("启动")
-                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
+            if getattr(self, '_onoff_in_progress', False):
+                return
+            self._onoff_in_progress = True
+            try:
+                while self.query_active[0]:
+                    from PySide6.QtWidgets import QApplication
+                    QApplication.processEvents()
+                    time.sleep(0.001)
+                if self.status == 1:
+                    print("Sending SetOff command (status=1)")
+                    success = self.SetOff()
+                    if success:
+                        self.start_btn.setText("停止")
+                        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
+                else:
+                    print("Sending SetOn command (status=0)")
+                    success = self.SetOn()
+                    if success:
+                        self.start_btn.setText("启动")
+                        self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
+            finally:
+                self._onoff_in_progress = False
     
 
             
