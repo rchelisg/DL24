@@ -55,12 +55,12 @@ class QueryThread(QThread):
         
         queries = [
             ('ReadLStatus', b'\xb1\xb2\x10\x00\x00\xb6', 0x10),
-            ('ReadSmV', b'\xb1\xb2\x11\x00\x00\xb6', 0x11),
             ('ReadSmA', b'\xb1\xb2\x12\x00\x00\xb6', 0x12),
             ('ReadSTimer', b'\xb1\xb2\x13\x00\x00\xb6', 0x13),
+            ('ReadSmV', b'\xb1\xb2\x11\x00\x00\xb6', 0x11),
+            ('ReadMosT', b'\xb1\xb2\x16\x00\x00\xb6', 0x16),
             ('ReadSmAh', b'\xb1\xb2\x14\x00\x00\xb6', 0x14),
             ('ReadSmWh', b'\xb1\xb2\x15\x00\x00\xb6', 0x15),
-            ('ReadMosT', b'\xb1\xb2\x16\x00\x00\xb6', 0x16),
             ('ReadIset', b'\xb1\xb2\x17\x00\x00\xb6', 0x17),
             ('ReadVset', b'\xb1\xb2\x18\x00\x00\xb6', 0x18),
             ('ReadTset', b'\xb1\xb2\x19\x00\x00\xb6', 0x19)
@@ -167,7 +167,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.21"
+REVISION = "1.0.22"
 
 # Test comment to trigger revision increment - updated again
 
@@ -2922,6 +2922,10 @@ class DL24App(QMainWindow):
                 'vset': getattr(self, 'previous_vset', None),
                 'tset': getattr(self, 'previous_tset', None)
             }
+            
+            if self.query_thread is not None and self.query_thread.isRunning():
+                self.main_loop_running = False
+                return
             
             self.query_thread = QueryThread(
                 serial_port=self.serial_port,
