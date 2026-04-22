@@ -71,91 +71,94 @@ class QueryThread(QThread):
         M = 0
         S = 0
         
-        for query_name, command, third_byte in queries:
-            if not self.running:
-                break
-            
-            self.serial_buffer.clear()
-            if hasattr(self.serial_port, 'in_waiting'):
-                while self.serial_port.in_waiting > 0:
-                    self.serial_port.read(self.serial_port.in_waiting)
-            
-            time.sleep(self.t1)
-            
-            self.send_data_func(command)
-            start_time = time.time()
-            
-            time.sleep(self.thold)
-            
-            self.serial_buffer.clear()
-            if hasattr(self.serial_port, 'in_waiting'):
-                while self.serial_port.in_waiting > 0:
-                    self.serial_port.read(self.serial_port.in_waiting)
-            
-            response = None
-            while time.time() - start_time < self.ttimeout:
+        try:
+            for query_name, command, third_byte in queries:
                 if not self.running:
                     break
+                
+                self.serial_buffer.clear()
                 if hasattr(self.serial_port, 'in_waiting'):
-                    if self.serial_port.in_waiting > 0:
-                        data = self.serial_port.read(self.serial_port.in_waiting)
-                        self.serial_buffer.extend(data)
-                        header = b'\xca\xcb'
-                        trailer = b'\xce\xcf'
-                        header_index = self.serial_buffer.find(header)
-                        while header_index != -1:
-                            if len(self.serial_buffer) >= header_index + 7:
-                                if self.serial_buffer[header_index + 5:header_index + 7] == trailer:
-                                    response = self.serial_buffer[header_index:header_index + 7]
-                                    break
-                            header_index = self.serial_buffer.find(header, header_index + 1)
-                        if response:
-                            break
-                time.sleep(0.01)
+                    while self.serial_port.in_waiting > 0:
+                        self.serial_port.read(self.serial_port.in_waiting)
+                
+                time.sleep(self.t1)
+                
+                self.send_data_func(command)
+                start_time = time.time()
+                
+                time.sleep(self.thold)
+                
+                self.serial_buffer.clear()
+                if hasattr(self.serial_port, 'in_waiting'):
+                    while self.serial_port.in_waiting > 0:
+                        self.serial_port.read(self.serial_port.in_waiting)
+                
+                response = None
+                while time.time() - start_time < self.ttimeout:
+                    if not self.running:
+                        break
+                    if hasattr(self.serial_port, 'in_waiting'):
+                        if self.serial_port.in_waiting > 0:
+                            data = self.serial_port.read(self.serial_port.in_waiting)
+                            self.serial_buffer.extend(data)
+                            header = b'\xca\xcb'
+                            trailer = b'\xce\xcf'
+                            header_index = self.serial_buffer.find(header)
+                            while header_index != -1:
+                                if len(self.serial_buffer) >= header_index + 7:
+                                    if self.serial_buffer[header_index + 5:header_index + 7] == trailer:
+                                        response = self.serial_buffer[header_index:header_index + 7]
+                                        break
+                                header_index = self.serial_buffer.find(header, header_index + 1)
+                            if response:
+                                break
+                    time.sleep(0.01)
+                
+                if response:
+                    if query_name == 'ReadLStatus':
+                        results['status'] = response[4]
+                    elif query_name == 'ReadSmV':
+                        results['voltage'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSmA':
+                        results['current'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSTimer':
+                        H = response[2]
+                        M = response[3]
+                        S = response[4]
+                        results['H'] = H
+                        results['M'] = M
+                        results['S'] = S
+                        if results.get('status') == 1:
+                            new_run_time = S + M * 60 + H * 3600
+                            if new_run_time < RunTime or new_run_time > RunTime + 3:
+                                RunTime = RunTime + 1
+                            else:
+                                RunTime = new_run_time
+                    elif query_name == 'ReadSmAh':
+                        results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadSmWh':
+                        results['energy'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadMosT':
+                        results['most'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadIset':
+                        results['iset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadVset':
+                        results['vset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                    elif query_name == 'ReadTset':
+                        results['tset'] = (response[2] << 16) | (response[3] << 8) | response[4]
+                else:
+                    print(f"Timeout: query ID 0x{third_byte:02X}")
+                
+                time.sleep(self.tdelay)
             
-            if response:
-                if query_name == 'ReadLStatus':
-                    results['status'] = response[4]
-                elif query_name == 'ReadSmV':
-                    results['voltage'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadSmA':
-                    results['current'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadSTimer':
-                    H = response[2]
-                    M = response[3]
-                    S = response[4]
-                    results['H'] = H
-                    results['M'] = M
-                    results['S'] = S
-                    if results.get('status') == 1:
-                        new_run_time = S + M * 60 + H * 3600
-                        if new_run_time < RunTime or new_run_time > RunTime + 3:
-                            RunTime = RunTime + 1
-                        else:
-                            RunTime = new_run_time
-                elif query_name == 'ReadSmAh':
-                    results['capacity'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadSmWh':
-                    results['energy'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadMosT':
-                    results['most'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadIset':
-                    results['iset'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadVset':
-                    results['vset'] = (response[2] << 16) | (response[3] << 8) | response[4]
-                elif query_name == 'ReadTset':
-                    results['tset'] = (response[2] << 16) | (response[3] << 8) | response[4]
-            else:
-                print(f"Timeout: query ID 0x{third_byte:02X}")
-            
-            time.sleep(self.tdelay)
-        
-        for key, default in self.previous_values.items():
-            if key not in results:
-                results[key] = default
-        
-        self.query_active_ref[0] = False
-        self.query_completed.emit(results)
+            for key, default in self.previous_values.items():
+                if key not in results:
+                    results[key] = default
+        except Exception as e:
+            print(f"QueryThread error: {e}")
+        finally:
+            self.query_active_ref[0] = False
+            self.query_completed.emit(results)
     
     def stop(self):
         self.running = False
@@ -167,7 +170,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.22"
+REVISION = "1.0.26"
 
 # Test comment to trigger revision increment - updated again
 
@@ -292,7 +295,7 @@ class OverlayWidget(QWidget):
         dialog.resize(400, 150)  # 调整对话框大小以容纳长文本
         
         # 设置对话框样式
-        dialog.setStyleSheet("QInputDialog { background-color: white; } QLabel { color: black; } QLineEdit { background-color: white; color: black; border: 1px solid gray; }")
+        dialog.setStyleSheet("QInputDialog { background-color: white; } QInputDialog QLabel { color: black; } QInputDialog QLineEdit { background-color: white; color: black; border: 1px solid gray; }")
         
         if dialog.exec() == QDialog.Accepted:
             new_text = dialog.textValue()
@@ -1485,6 +1488,8 @@ class DL24App(QMainWindow):
                 RunTime = 0
                 # 清除曲线数据
                 self.clear_plot()
+                # 设置T scale的Tmax=120
+                self.update_t_scale(120)
             else:
                 print("Failed to reset counters")
             
@@ -2947,95 +2952,106 @@ class DL24App(QMainWindow):
         # 处理查询结果（在主线程中执行）
         global RunTime
         
-        energy = results.get('energy', None)
-        capacity = results.get('capacity', None)
-        iset = results.get('iset', None)
-        vset = results.get('vset', None)
-        voltage = results.get('voltage', None)
-        current = results.get('current', None)
-        status = results.get('status', None)
-        most = results.get('most', None)
-        tset = results.get('tset', None)
-        
-        self.previous_status = status
-        self.previous_voltage = voltage
-        self.previous_current = current
-        self.previous_energy = energy
-        self.previous_capacity = capacity
-        self.previous_most = most
-        self.previous_iset = iset
-        self.previous_vset = vset
-        self.previous_tset = tset
-        
-        if 'H' in results:
-            self.H = results['H']
-        if 'M' in results:
-            self.M = results['M']
-        if 'S' in results:
-            self.S = results['S']
-        
-        global MosT
-        if most is not None:
-            MosT = most
-        
-        Wh = energy / 1000 if energy is not None else None
-        mAh = capacity if capacity is not None else None
-        Iset = iset / 100 if iset is not None else None
-        Vset = vset / 100 if vset is not None else None
-        
-        V = voltage / 1000 if voltage is not None else None
-        A = current / 1000 if current is not None else None
-        W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
-        
-        self.V = V if V is not None else 4.0
-        self.A = A if A is not None else 1.0
-        
-        if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 6:
-            if V is not None:
-                self.zone2_value_labels[0].setText(f"{V:06.3f}")
-            if A is not None:
-                self.zone2_value_labels[1].setText(f"{A:06.3f}")
-            if Wh is not None:
-                self.zone2_value_labels[2].setText(f"{Wh:06.1f}")
-            if mAh is not None:
-                self.zone2_value_labels[3].setText(f"{mAh:05.0f}")
-            if W is not None:
-                self.zone2_value_labels[4].setText(f"{W:06.2f}")
-            if hasattr(self, 'H') and hasattr(self, 'M') and hasattr(self, 'S'):
-                time_str = f"{self.H:02d}:{self.M:02d}:{self.S:02d}"
-                self.zone2_value_labels[5].setText(time_str)
-        
-        # 检查RunTime是否大于等于Tmax
-        if RunTime >= self.scale_line4.max_value:
-            new_tmax = RunTime + 60
-            self.update_t_scale(new_tmax)
-        
-        if hasattr(self, 'row3_entry') and Vset is not None:
-            self.row3_entry.setText(f"{Vset:.2f}")
-            self.Vset = Vset
-        
-        if hasattr(self, 'row4_entry') and Iset is not None:
-            self.row4_entry.setText(f"{Iset:.2f}")
-            self.Iset = Iset
-        
-        if hasattr(self, 'temperature_label'):
-            self.update_temperature_display()
-        
-        self.status = status if status is not None else 0
-        
-        if status is not None:
-            if status == 1:
-                self.start_btn.setText("停止")
-                self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
-                self.update_data()
+        try:
+            energy = results.get('energy', None)
+            capacity = results.get('capacity', None)
+            iset = results.get('iset', None)
+            vset = results.get('vset', None)
+            voltage = results.get('voltage', None)
+            raw_current = results.get('current', None)
+            status = results.get('status', None)
+            most = results.get('most', None)
+            tset = results.get('tset', None)
+            
+            if raw_current is not None:
+                if not hasattr(self, 'sma_history'):
+                    self.sma_history = []
+                self.sma_history.append(raw_current)
+                self.sma_history = self.sma_history[-5:]
+                current = sum(self.sma_history) // len(self.sma_history)
             else:
-                self.start_btn.setText("启动")
-                self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
-        
-        if hasattr(self, 'status_indicator') and self.is_connected:
-            self.status_indicator.setStyleSheet("color: green; padding: 0px; margin: 0px;")
-        
-        self.main_loop_running = False
+                current = None
+            
+            self.previous_status = status
+            self.previous_voltage = voltage
+            self.previous_current = current
+            self.previous_energy = energy
+            self.previous_capacity = capacity
+            self.previous_most = most
+            self.previous_iset = iset
+            self.previous_vset = vset
+            self.previous_tset = tset
+            
+            if 'H' in results:
+                self.H = results['H']
+            if 'M' in results:
+                self.M = results['M']
+            if 'S' in results:
+                self.S = results['S']
+            
+            global MosT
+            if most is not None:
+                MosT = most
+            
+            Wh = energy / 1000 if energy is not None else None
+            mAh = capacity if capacity is not None else None
+            Iset = iset / 100 if iset is not None else None
+            Vset = vset / 100 if vset is not None else None
+            
+            V = voltage / 1000 if voltage is not None else None
+            A = current / 1000 if current is not None else None
+            W = (voltage * current) / 1000000 if voltage is not None and current is not None else None
+            
+            self.V = V if V is not None else 4.0
+            self.A = A if A is not None else 1.0
+            
+            if hasattr(self, 'zone2_value_labels') and len(self.zone2_value_labels) >= 6:
+                if V is not None:
+                    self.zone2_value_labels[0].setText(f"{V:06.3f}")
+                if A is not None:
+                    self.zone2_value_labels[1].setText(f"{A:06.3f}")
+                if Wh is not None:
+                    self.zone2_value_labels[2].setText(f"{Wh:06.1f}")
+                if mAh is not None:
+                    self.zone2_value_labels[3].setText(f"{mAh:05.0f}")
+                if W is not None:
+                    self.zone2_value_labels[4].setText(f"{W:06.2f}")
+                if hasattr(self, 'H') and hasattr(self, 'M') and hasattr(self, 'S'):
+                    time_str = f"{self.H:02d}:{self.M:02d}:{self.S:02d}"
+                    self.zone2_value_labels[5].setText(time_str)
+            
+            if RunTime >= self.scale_line4.max_value:
+                new_tmax = RunTime + 60
+                self.update_t_scale(new_tmax)
+            
+            if hasattr(self, 'row3_entry') and Vset is not None:
+                self.row3_entry.setText(f"{Vset:.2f}")
+                self.Vset = Vset
+            
+            if hasattr(self, 'row4_entry') and Iset is not None:
+                self.row4_entry.setText(f"{Iset:.2f}")
+                self.Iset = Iset
+            
+            if hasattr(self, 'temperature_label'):
+                self.update_temperature_display()
+            
+            self.status = status if status is not None else 0
+            
+            if status is not None:
+                if status == 1:
+                    self.start_btn.setText("停止")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: red; color: white; padding: 0px; margin: 0px; font-size: 17px;")
+                    self.update_data()
+                else:
+                    self.start_btn.setText("启动")
+                    self.start_btn.setStyleSheet("border: 1px solid gray; border-radius: 16px; background-color: white; padding: 0px; margin: 0px; font-size: 17px;")
+            
+            if hasattr(self, 'status_indicator') and self.is_connected:
+                self.status_indicator.setStyleSheet("color: green; padding: 0px; margin: 0px;")
+        except Exception as e:
+            print(f"Error in on_query_completed: {e}")
+        finally:
+            self.main_loop_running = False
         
     def refresh_ports(self):
         self.port_combo.clear()
@@ -3138,31 +3154,39 @@ class DL24App(QMainWindow):
                 self.rx_status_icon.setStyleSheet("color: darkgrey; padding: 0px; margin: 0px;")
             
     def update_data(self):
-        # 只有当SLStatus=1时才更新数据
+        global RunTime
+        
         sl_status = getattr(self, 'status', 0)
         if sl_status != 1:
+            if hasattr(self, '_status_was_one'):
+                self._status_was_one = False
             return
         
-        # 使用全局RunTime作为时间值
-        global RunTime
+        if not hasattr(self, '_status_was_one'):
+            self._status_was_one = False
+        
+        if not self._status_was_one:
+            self._status_was_one = True
+            self._skip_until_time = RunTime + 4
+        
         current_time = RunTime
         
-        # 使用实际电压数据，如果没有则使用默认值
-        voltage = getattr(self, 'V', 4.0)  # 使用从MainLoop获取的电压值
-        current = getattr(self, 'A', 1.0)  # 使用从MainLoop获取的电流值
-        power = voltage * current
-        capacity = current * current_time / 3600 * 1000  # mAh
-        energy = power * current_time / 3600  # Wh
+        if current_time < getattr(self, '_skip_until_time', 0):
+            return
         
-        # 存储数据
+        voltage = getattr(self, 'V', 4.0)
+        current = getattr(self, 'A', 1.0)
+        power = voltage * current
+        capacity = current * current_time / 3600 * 1000
+        energy = power * current_time / 3600
+        
         self.data['time'].append(current_time)
         self.data['I'].append(current)
         self.data['V'].append(voltage)
         self.data['P'].append(power)
         
-        # 检查时间是否超过最大值
         if current_time > self.time_max:
-            self.time_max += 60  # 自动增加1分钟
+            self.time_max += 60
     
     def send_data(self, data, bypass_wait=False):
         if self.is_connected and self.serial_port:
@@ -3197,52 +3221,6 @@ class DL24App(QMainWindow):
                 self.rx_status_icon.setStyleSheet("color: green;")
             else:
                 self.rx_status_icon.setStyleSheet("color: darkgrey;")
-    
-    def process_serial_data(self):
-        """Process serial data continuously to detect 36-byte frames"""
-        if self.is_connected and self.serial_port:
-            try:
-                # 读取可用数据
-                if hasattr(self.serial_port, 'in_waiting'):
-                    if self.serial_port.in_waiting > 0:
-                        # 正在接收数据
-                        self.update_rx_status(True)
-                        data = self.serial_port.read(self.serial_port.in_waiting)
-                        # 添加数据到缓冲区
-                        self.serial_buffer.extend(data)
-                        # 处理串行缓冲区，检测数据帧
-                        self.process_serial_buffer()
-                        # 短暂延迟后恢复状态
-                        QTimer.singleShot(50, lambda: self.update_rx_status(False))
-            except Exception as e:
-                pass
-    
-    def process_serial_buffer(self):
-        """Process serial buffer to detect and handle 36-byte data frames"""
-        buffer = self.serial_buffer
-        frame_start = b'\xff\x55\x01'
-        frame_length = 36
-        
-        # 搜索帧起始序列
-        start_index = buffer.find(frame_start)
-        
-        while start_index != -1:
-            # 检测到头部，显示header...
-            print("header...", end="")
-            # 检查是否有足够的数据来完成帧
-            if len(buffer) >= start_index + frame_length:
-                # 提取完整帧
-                frame = buffer[start_index:start_index + frame_length]
-                # 输出状态帧信息
-                print("status frame")
-                # 从缓冲区中移除已处理的帧
-                self.serial_buffer = buffer[start_index + frame_length:]
-                # 继续搜索下一个帧
-                buffer = self.serial_buffer
-                start_index = buffer.find(frame_start)
-            else:
-                # 没有足够的数据，保留当前缓冲区
-                break
     
     # PX100 Protocol Command Functions
     def SetOff(self):
@@ -3296,195 +3274,6 @@ class DL24App(QMainWindow):
             return False
         command = b'\xb1\xb2\x05\x00\x00\xb6'
         return self.send_data(command)
-    
-    # PX100 Protocol Query Functions with retry logic
-    def _send_query(self, command, expected_response_length):
-        """Send query and wait for response with timeout and retry"""
-        if not self.is_connected:
-            return None
-        
-        max_retries = 3
-        timeout = 0.005  # 5ms timeout
-        header = b'\xca\xcb'
-        trailer = b'\xce\xcf'
-        
-        for attempt in range(max_retries):
-            # Clear serial buffer
-            self.serial_buffer.clear()
-            
-            # Send command
-            if not self.send_data(command):
-                # Wait 1ms before next try if not the last attempt
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(0.001)  # 1ms delay between retries
-                continue
-            
-            # Wait for response
-            import time
-            start_time = time.time()
-            while time.time() - start_time < timeout:
-                if hasattr(self.serial_port, 'in_waiting'):
-                    if self.serial_port.in_waiting > 0:
-                        data = self.serial_port.read(self.serial_port.in_waiting)
-                        self.serial_buffer.extend(data)
-                        
-                        # Search for header in the buffer
-                        header_index = self.serial_buffer.find(header)
-                        while header_index != -1:
-                            # Check if there's enough data for the full response
-                            if len(self.serial_buffer) >= header_index + expected_response_length:
-                                # Check if trailer is at the correct position
-                                trailer_position = header_index + expected_response_length - 2
-                                if self.serial_buffer[trailer_position:trailer_position + 2] == trailer:
-                                    # Found valid response
-                                    return self.serial_buffer[header_index:header_index + expected_response_length]
-                            # Continue searching for next header
-                            header_index = self.serial_buffer.find(header, header_index + 1)
-                # Small delay to avoid busy waiting
-                time.sleep(0.01)
-            
-            # Wait 1ms before next try if not the last attempt
-            if attempt < max_retries - 1:
-                time.sleep(0.001)  # 1ms delay between retries
-        
-        return None
-    
-    def ReadLStatus(self):
-        """Read SLStatus"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x10\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            return response[4]  # SLStatus = xx
-        return None
-    
-    def ReadSmV(self):
-        """Read SmV"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x11\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SmV = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadSmA(self):
-        """Read SmA"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x12\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SmA = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadSTimer(self):
-        """Read STimer (SH, SM, SS)"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x13\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SH=xx, SM=yy, SS=zz
-            return {
-                'SH': response[2],
-                'SM': response[3],
-                'SS': response[4]
-            }
-        return None
-    
-    def ReadSmAh(self):
-        """Read SmAh"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x14\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SmAh = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadSmWh(self):
-        """Read SmWh"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x15\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SmWh = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadMosT(self):
-        """Read SMosT"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x16\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SMosT = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadIset(self):
-        """Read SIset"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x17\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SIset = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadVset(self):
-        """Read SVset"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x18\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SVset = 0xxxyyzz
-            value = (response[2] << 16) | (response[3] << 8) | response[4]
-            return value
-        return None
-    
-    def ReadTset(self):
-        """Read Tset (SHset, SMset, SSset)"""
-        if not self.is_connected:
-            return None
-        command = b'\xb1\xb2\x19\x00\x00\xb6'
-        response = self._send_query(command, 7)  # Expected response length: 7 bytes
-        
-        if response and len(response) == 7 and response[0] == 0xca and response[1] == 0xcb and response[5] == 0xce and response[6] == 0xcf:
-            # SHset=hh, SMset=mm, SSset=ss
-            return {
-                'SHset': response[2],
-                'SMset': response[3],
-                'SSset': response[4]
-            }
-        return None
-    
-
     
     def on_onoff_button_clicked(self):
         """Handle OnOff button click"""
