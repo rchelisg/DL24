@@ -35,11 +35,10 @@ XResolution = 300
 class QueryThread(QThread):
     query_completed = Signal(dict)
     
-    def __init__(self, serial_port, serial_buffer, send_data_func, ttimeout, t1, thold, tdelay, previous_values, query_active_ref):
+    def __init__(self, serial_port, serial_buffer, ttimeout, t1, thold, tdelay, previous_values, query_active_ref):
         super().__init__()
         self.serial_port = serial_port
         self.serial_buffer = serial_buffer
-        self.send_data_func = send_data_func
         self.ttimeout = ttimeout
         self.t1 = t1
         self.thold = thold
@@ -83,7 +82,7 @@ class QueryThread(QThread):
                 
                 time.sleep(self.t1)
                 
-                self.send_data_func(command)
+                self.serial_port.write(command)
                 start_time = time.time()
                 
                 time.sleep(self.thold)
@@ -170,7 +169,7 @@ BUILD_TIME = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 # 版本号 - 硬编码，格式：x.y.zz (major.minor.patch)
 # 当代码更改时，手动递增版本号
 # 规则：patch从00-99，达到99后重置为00并递增minor
-REVISION = "1.0.26"
+REVISION = "1.0.28"
 
 # Test comment to trigger revision increment - updated again
 
@@ -2935,7 +2934,6 @@ class DL24App(QMainWindow):
             self.query_thread = QueryThread(
                 serial_port=self.serial_port,
                 serial_buffer=self.serial_buffer,
-                send_data_func=lambda data: self.send_data(data, bypass_wait=True),
                 ttimeout=self.TTimeOut,
                 t1=self.T1,
                 thold=self.THold,
@@ -3196,7 +3194,6 @@ class DL24App(QMainWindow):
                     QApplication.processEvents()
                     time.sleep(0.001)
             try:
-                self.serial_buffer.clear()
                 self.update_tx_status(True)
                 self.serial_port.write(data)
                 QTimer.singleShot(50, lambda: self.update_tx_status(False))
